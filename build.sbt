@@ -28,7 +28,7 @@ val copyright = headers := Map(
 )
 
 val setts = Seq(organization := "ru.tinkoff",
-  version := "1.1.10",
+  version := "1.1.11",
   scalaVersion := "2.11.8",
   scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8"),
   copyright,
@@ -67,17 +67,17 @@ val setts = Seq(organization := "ru.tinkoff",
     ""))
 
 val testLibs = Seq(
-  "com.typesafe.akka" % "akka-http-spray-json_2.11" % "10.0.0",
-  "org.scalatest" % "scalatest_2.11" % "3.0.0" % "test",
-  "org.mockito" % "mockito-core" % "2.0.31-beta" % "test",
+  "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.0",
+  "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+  "org.mockito" % "mockito-core" % "2.2.26" % "test",
   "junit" % "junit" % "4.12",
-  "com.github.danymarialee" % "aerospike-mock_2.11" % "1.0.2"
+  "com.github.danymarialee" %% "aerospike-mock" % "1.0.4"
 )
 
 val mainLib = Seq(
-  "com.aerospike" % "aerospike-client" % "3.3.0",
-  "com.typesafe.akka" % "akka-http-spray-json_2.11" % "10.0.0",
-  "com.chuusai" % "shapeless_2.11" % "2.3.2",
+  "com.aerospike" % "aerospike-client" % "3.3.1",
+  "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.0",
+  "com.chuusai" %% "shapeless" % "2.3.2",
   "org.scala-lang" % "scala-reflect" % "2.11.8")
 
 lazy val macros = Project(id = "aerospike-scala-macros",

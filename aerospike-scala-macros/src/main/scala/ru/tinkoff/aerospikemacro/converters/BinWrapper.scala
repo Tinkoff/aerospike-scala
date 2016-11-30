@@ -318,7 +318,7 @@ object BinWrapper {
      } """
       case t if t =:= weakTypeOf[Array[Int]] =>
         q"""override def fetch(any: Any): Option[$tpe] = any match {
-        case v: java.util.ArrayList[Int] => Option(v.asScala.toArray)
+        case v: java.util.ArrayList[Long] => Option(v.asScala.view.map(_.toInt).toArray)
         case _ => None
      } """
       case t if t =:= weakTypeOf[Array[Long]] =>
