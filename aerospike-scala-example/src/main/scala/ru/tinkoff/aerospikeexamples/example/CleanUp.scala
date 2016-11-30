@@ -40,7 +40,8 @@ object CleanUp extends App {
   val keys = List("mapKey", "mapSimpleString", "mapStringString", "mapIntString", "mapStringInt", "mapLong", "mapFloat", "mapDouble", "stringKey",
     "intBinKey", "floatBinKey", "doubleBinKey", "boolBinKey", "shortBinKey", "longBinKey", "charBinKey", "byteBinKey",
     "listStBinKey", "listIntKey", "listLongKey", "listFloatKey", "listDoubleKey", "sampleKey", "hListKey", "oneKey",
-    "manyKey", "hListKey2", "tuple3Key", "arrayByteKey", "byteSegmKey")
+    "manyKey", "hListKey2", "tuple3Key", "arrayByteKey", "byteSegmKey", "arrayStKey",
+    "arrayDoubleKey", "arrayFloatKey", "arrayLongKey", "arrayIntKey")
 
   val result = for (key <- keys) yield spike.deleteK(key)
   Await.result(Future.sequence(result), Inf)

@@ -20,6 +20,7 @@ import ru.tinkoff.aerospikemacro.printer.Printer
 import ru.tinkoff.aerospikescala.domain.{ByteSegment, SingleBin}
 import shapeless._
 
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration.Inf
 import scala.language.experimental.macros
@@ -60,7 +61,13 @@ object SampleApp extends App {
   myObj.putListLong("listLongKey", SingleBin("listLongBin", List(1000L, 2000L, 3000L, 4000L)))
   myObj.putListFloat("listFloatKey", SingleBin("listFloatBin", List(1.12F, 2.13F, 3.5F, 4.5F)))
   myObj.putListDouble("listDoubleKey", SingleBin("listDoubleBin", List(12.11, 12.13, 23.5, 46.5)))
- // myObj.putArrayByte("arrayByteKey", SingleBin("arrayByteBin", Array(Byte.MinValue, Byte.MaxValue, Byte.MinValue)))
+  myObj.putArrayString("arrayStKey", SingleBin("arrayStBin", Array("abcd", "efgh", "ijkl")))
+  myObj.putArrayInt("arrayIntKey", SingleBin("arrayInt", Array(3,6,8)))
+  myObj.putArrayLong("arrayLongKey", SingleBin("arrayLong", Array(1L, 56L, 98L)))
+  myObj.putArrayFloat("arrayFloatKey", SingleBin("arrayFloat", Array(1.12F, 2.13F, 3.5F)))
+  myObj.putArrayDouble("arrayDoubleKey", SingleBin("arrayDouble", Array(12.13, 23.5, 46.5)))
+  myObj.putArrayByte("arrayByteKey", SingleBin("arrayByteBin", Array(Byte.MinValue, Byte.MaxValue, Byte.MinValue)))
+  myObj.putSeqArrayBuffer("seqArrBuff", SingleBin("ww", Seq(ArrayBuffer(1.2, 3.1, 5.6))))
  // myObj.putByteSegment("byteSegmKey", SingleBin("byteSegment", ByteSegment(Array(Byte.MinValue, Byte.MaxValue), 12, 33)))
 
   myObj.putSample("sampleKey", SingleBin("sampleBin", Sample("sampleName", 2)))
@@ -139,6 +146,24 @@ object SampleApp extends App {
 
   val hlist2 = Await.result(myObj.getHList2("hListKey2"), Inf)
   Printer.printNameValue(hlist2)
+
+  val arrayString = Await.result(myObj.getArrayString("arrayStKey"), Inf)
+  Printer.printNameValue(arrayString)
+
+  val arrayInt = Await.result(myObj.getArrayInt("arrayIntKey"), Inf)
+  Printer.printNameValue(arrayInt)
+
+  val arrayLong = Await.result(myObj.getArrayLong("arrayLongKey"), Inf)
+  Printer.printNameValue(arrayLong)
+
+  val arrayFloat = Await.result(myObj.getArrayFloat("arrayFloatKey"), Inf)
+  Printer.printNameValue(arrayFloat)
+
+  val arrayDouble = Await.result(myObj.getArrayDouble("arrayDoubleKey"), Inf)
+  Printer.printNameValue(arrayDouble)
+
+/*  val seqArrBuff = Await.result(myObj.getSeqArrayBuffer("seqArrBuff"), Inf)
+  Printer.printNameValue(seqArrBuff)*/
 /*
   val arrayByteBin = Await.result(myObj.getArrayByte("arrayByteKey"), Inf)
   Printer.printNameValue(arrayByteBin)*/

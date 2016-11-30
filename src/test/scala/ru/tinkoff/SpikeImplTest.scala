@@ -19,33 +19,23 @@ package ru.tinkoff
 
 import com.aerospike.client.Operation.Type
 import com.aerospike.client.Value.StringValue
-import com.aerospike.client.listener.{ExistsSequenceListener, _}
 import com.aerospike.client._
-import com.aerospike.client.policy._
 import com.aerospike.client.query._
-import com.aerospike.client.task.{ExecuteTask, RegisterTask}
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
-import com.aerospike.client.Value.MapValue
 import com.github.danymarialee.mock._
 import ru.tinkoff.aerospike.dsl._
-import ru.tinkoff.aerospikemacro.converters.{BinWrapper, KeyWrapper}
+import ru.tinkoff.aerospikemacro.converters._
 import ru.tinkoff.aerospike.dsl.{CallKB, SpikeImpl}
-
 import scala.language.experimental.macros
-import shapeless.{HList, _}
-import shapeless.HList.hlistOps
-import syntax.std.traversable._
-
-import scala.collection.JavaConversions._
+import shapeless._
 import ru.tinkoff.aerospikemacro.converters._
 import ru.tinkoff.aerospikescala.domain.{MBin, SingleBin}
 import ru.tinkoff.aerospike.dsl.errors.AerospikeDSLError
 import ru.tinkoff.aerospikemacro.domain.DBCredentials
-
 import scala.concurrent.ExecutionContext.Implicits.global
-
+import org.scalatest.mockito.MockitoSugar
+import ACMock._
 
 /**
   * @author MarinaSigaeva
@@ -54,67 +44,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class SpikeImplTest extends FlatSpec with Matchers with MockitoSugar with ScalaFutures {
 
   trait mocks {
-    val m1: java.util.Map[String, AnyRef] = Map("operateBinName" -> new StringValue("operate"))
-    val record1 = new Record(m1, 100, 12)
-    val s1 = new StringValue("execute")
-
-    val spikeMock = new MockAerospike {
-      override def put(policy: WritePolicy, key: Key, bins: Bin*): Unit = {}
-
-      override def append(policy: WritePolicy, key: Key, bins: Bin*): Unit = {}
-
-      override def prepend(policy: WritePolicy, key: Key, bins: Bin*): Unit = {}
-
-      override def operate(policy: WritePolicy, key: Key, operations: Operation*): Record = record1
-
-      override def operate(policy: WritePolicy, listener: RecordListener, key: Key, operations: Operation*): Unit = {}
-
-      override def delete(policy: WritePolicy, listener: DeleteListener, key: Key): Unit = {}
-
-      override def delete(policy: WritePolicy, key: Key): Boolean = true
-
-      override def touch(policy: WritePolicy, listener: WriteListener, key: Key): Unit = {}
-
-      override def touch(policy: WritePolicy, key: Key): Unit = {}
-
-      override def execute(policy: WritePolicy, listener: ExecuteListener, key: Key,
-                           packageName: String, functionName: String, functionArgs: Value*): Unit = {}
-
-      override def execute(policy: WritePolicy, key: Key, packageName: String, functionName: String, args: Value*): Any = s1
-
-      override def execute(policy: WritePolicy, statement: Statement, packageName: String, functionName: String, functionArgs: Value*): ExecuteTask = et1
-
-      override def exists(policy: Policy, listener: ExistsListener, key: Key): Unit = {}
-
-      override def exists(policy: Policy, key: Key): Boolean = true
-
-      override def exists(policy: BatchPolicy, listener: ExistsArrayListener, keys: Array[Key]): Unit = {}
-
-      override def exists(policy: BatchPolicy, listener: ExistsSequenceListener, keys: Array[Key]): Unit = {}
-
-      override def exists(policy: BatchPolicy, keys: Array[Key]): Array[Boolean] = Array(true)
-
-      override def query(policy: QueryPolicy, listener: RecordSequenceListener, statement: Statement): Unit = {}
-
-      override def query(policy: QueryPolicy, statement: Statement): RecordSet = null
-
-      //= new RecordSet(queryExecutor, 1)
-      override def queryAggregate(policy: QueryPolicy, statement: Statement, packageName: String, functionName: String, functionArgs: Value*): ResultSet = null
-
-      override def queryAggregate(policy: QueryPolicy, statement: Statement): ResultSet = null
-
-      override def scanAll(policy: ScanPolicy, listener: RecordSequenceListener, namespace: String, setName: String, binNames: String*): Unit = {}
-
-      override def scanAll(policy: ScanPolicy, namespace: String, setName: String, callback: ScanCallback, binNames: String*): Unit = {}
-
-      override def removeUdf(policy: InfoPolicy, serverPath: String): Unit = {}
-
-      override def registerUdfString(policy: Policy, code: String, serverPath: String, language: Language): RegisterTask = rt1
-
-
-    }
-
-    val spikeDao = new SpikeImpl(spikeMock)
+    val acMock = ACMock.spikeMock
+    val spikeDao = new SpikeImpl(acMock)
   }
 
   case class Cat(name: String)
@@ -200,7 +131,7 @@ class SpikeImplTest extends FlatSpec with Matchers with MockitoSugar with ScalaF
   it should "call execute" in new mocks {
     implicit val dbc = DBCredentials("test", "test")
 
-    spikeDao.call(Call.Execute, Param1("pkg", "fName", List(new StringValue("str")), Option(new Statement()))).futureValue shouldBe spikeMock.et1
+    spikeDao.call(Call.Execute, Param1("pkg", "fName", List(new StringValue("str")), Option(new Statement()))).futureValue shouldBe exTask
   }
 
   it should "call query" in new mocks {
@@ -233,7 +164,7 @@ class SpikeImplTest extends FlatSpec with Matchers with MockitoSugar with ScalaF
   it should "call registerUdfString" in new mocks {
     implicit val dbc = DBCredentials("test", "test")
 
-    spikeDao.call(Call.RegisterUdfString, Param5("10", "serverPath", Language.LUA)).futureValue shouldBe spikeMock.rt1
+    spikeDao.call(Call.RegisterUdfString, Param5("10", "serverPath", Language.LUA)).futureValue shouldBe regTask
   }
 
   it should "throw Unsupported type or action exception" in new mocks {

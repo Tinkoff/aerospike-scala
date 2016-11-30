@@ -23,8 +23,10 @@ import ru.tinkoff.aerospike.dsl.{CallKB, SpikeImpl}
 import ru.tinkoff.aerospikemacro.converters.{BinWrapper, KeyWrapper}
 import ru.tinkoff.aerospikescala.domain.{ByteSegment, SingleBin}
 import shapeless._
+import java.util.ArrayList
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.experimental.macros
 
@@ -141,7 +143,19 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
 
   def putTuple(k: String, a: SingleBin[(String, Long, Double)])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, (String, Long, Double)](CallKB.Put, k, a)
 
+  def putSeqArrayBuffer(k: String, a: SingleBin[Seq[ArrayBuffer[Double]]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Seq[ArrayBuffer[Double]]](CallKB.Put, k, a)
+
   def putArrayByte(k: String, a: SingleBin[Array[Byte]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Array[Byte]](CallKB.Put, k, a)
+
+  def putArrayString(k: String, a: SingleBin[Array[String]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Array[String]](CallKB.Put, k, a)
+
+  def putArrayInt(k: String, a: SingleBin[Array[Int]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Array[Int]](CallKB.Put, k, a)
+
+  def putArrayLong(k: String, a: SingleBin[Array[Long]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Array[Long]](CallKB.Put, k, a)
+
+  def putArrayFloat(k: String, a: SingleBin[Array[Float]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Array[Float]](CallKB.Put, k, a)
+
+  def putArrayDouble(k: String, a: SingleBin[Array[Double]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Array[Double]](CallKB.Put, k, a)
 
   def putByteSegment(k: String, a: SingleBin[ByteSegment])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, ByteSegment](CallKB.Put, k, a)
 
@@ -185,7 +199,19 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
 
   def getListDouble(k: String)(implicit e: ExecutionContext): Future[List[Double]] = spike.getByKey[String, List[Double]](k, Nil).map(_._1).map(_.values.head.getOrElse(Nil))
 
+  def getSeqArrayBuffer(k: String)(implicit e: ExecutionContext): Future[Seq[ArrayBuffer[Double]]] = spike.getByKey[String, Seq[ArrayBuffer[Double]]](k, Nil).map(_._1).map(_.values.head.getOrElse(Seq()))
+
   def getArrayByte(k: String)(implicit e: ExecutionContext): Future[Array[Byte]] = spike.getByKey[String, Array[Byte]](k, Nil).map(_._1).map(_.values.head.getOrElse(Array.empty[Byte]))
+
+  def getArrayString(k: String)(implicit e: ExecutionContext): Future[Array[String]] = spike.getByKey[String, Array[String]](k, Nil).map(_._1).map(_.values.head.getOrElse(Array.empty[String]))
+
+  def getArrayInt(k: String)(implicit e: ExecutionContext): Future[Array[Int]] = spike.getByKey[String, Array[Int]](k, Nil).map(_._1).map(_.values.head.getOrElse(Array.empty[Int]))
+
+  def getArrayLong(k: String)(implicit e: ExecutionContext): Future[Array[Long]] = spike.getByKey[String, Array[Long]](k, Nil).map(_._1).map(_.values.head.getOrElse(Array.empty[Long]))
+
+  def getArrayFloat(k: String)(implicit e: ExecutionContext): Future[Array[Float]] = spike.getByKey[String, Array[Float]](k, Nil).map(_._1).map(_.values.head.getOrElse(Array.empty[Float]))
+
+  def getArrayDouble(k: String)(implicit e: ExecutionContext): Future[Array[Double]] = spike.getByKey[String, Array[Double]](k, Nil).map(_._1).map(_.values.head.getOrElse(Array.empty[Double]))
 
   def getByteSegment(k: String)(implicit e: ExecutionContext): Future[ByteSegment] = spike.getByKey[String, ByteSegment](k, Nil)
     .map(_._1).map(_.values.head.getOrElse(ByteSegment(Array.empty[Byte], 0, 0)))

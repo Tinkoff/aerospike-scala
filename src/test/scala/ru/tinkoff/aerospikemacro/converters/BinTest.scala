@@ -61,6 +61,7 @@ class BinTest extends FlatSpec with Matchers {
     getBin(SingleBin("name", hList)).value.getObject shouldBe mh
     getBin(SingleBin("name", hList)) shouldBe mapBinH
     getBin(SingleBin("name", (2.toDouble, List("a", "b"), 2, "dsdsds"))) shouldBe mapBinH
+    getBin(SingleBin("name", Array("a", "b", "c"))) shouldBe arrayStringBin
 
   }
 
@@ -319,9 +320,11 @@ trait mocks {
   val tsBlobArray = new ValueArray(Array(tsBlob1, tsBlob3))
 
   val js: JList[Int] = Seq(1, 2, 3)
+  val jls: JList[String] = List("a", "b", "c")
   val intListBin = new Bin("name", jl)
   val intSeqBin = new Bin("name", js)
   val arrayByteBin = new Bin("name", Array[Byte](192.toByte, 168.toByte, 1, 9))
+  val arrayStringBin = new Bin("name", jls)
   val truckBin = new Bin("name", Truck("truck", 4, List(1, 2, 3)))
   val mSeqBin = new Bin("name", mSeq(1, 2, 3))
   val mapList: JMap[Int, JList[Int]] = Map(1 -> jl)

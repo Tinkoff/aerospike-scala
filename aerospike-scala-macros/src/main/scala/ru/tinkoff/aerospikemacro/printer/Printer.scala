@@ -24,14 +24,19 @@ import scala.reflect.macros.blackbox
   * @since 21.10.16
   */
 object Printer {
-  def printNameValue[T](x: T): Unit = macro impl
+  def printNameValue[T](x: T): Unit = macro impl[T]
 
-  def impl(c: blackbox.Context)(x: c.Tree): c.Tree = {
+  def impl[R](c: blackbox.Context)(x: c.Tree): c.Tree = {
     import c.universe._
+    val tpe = weakTypeOf[R]
+
     val name = x match {
       case Select(_, TermName(s)) => s
       case _ => ""
     }
+
+    val isArray = tpe.widen.typeSymbol.name.eq(TypeName("Array"))
+    println("isArray " + isArray)
 
     q"""
        println("-"*20)

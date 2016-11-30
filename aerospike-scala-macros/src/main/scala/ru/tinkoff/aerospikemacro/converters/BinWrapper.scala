@@ -79,6 +79,7 @@ trait BinWrapper[BT] {
     case b: Array[Byte] => new BytesValue(b)
     case jl: java.util.List[_] => new ListValue(jl)
     case s: List[_] => new ListValue(s)
+    case a: Array[_] => new ListValue(a.toList)
     case jm: java.util.Map[_, _] => new MapValue(jm)
     case m: Map[_, _] => new MapValue(m)
     case t: Any with Product if isTuple(t) => new MapValue(tupleMapped(t))
@@ -308,6 +309,31 @@ object BinWrapper {
       case t if t =:= weakTypeOf[List[Double]] =>
         q"""override def fetch(any: Any): Option[$tpe] = any match {
         case v: java.util.ArrayList[Double] => Option(v.view.map(_.toDouble).toList)
+        case _ => None
+     } """
+      case t if t =:= weakTypeOf[Array[String]] =>
+        q"""override def fetch(any: Any): Option[$tpe] = any match {
+        case v: java.util.ArrayList[String] => Option(v.asScala.toArray)
+        case _ => None
+     } """
+      case t if t =:= weakTypeOf[Array[Int]] =>
+        q"""override def fetch(any: Any): Option[$tpe] = any match {
+        case v: java.util.ArrayList[Long] => Option(v.asScala.view.map(_.toInt).toArray)
+        case _ => None
+     } """
+      case t if t =:= weakTypeOf[Array[Long]] =>
+        q"""override def fetch(any: Any): Option[$tpe] = any match {
+        case v: java.util.ArrayList[Long] => Option(v.asScala.toArray)
+        case _ => None
+     } """
+      case t if t =:= weakTypeOf[Array[Float]] =>
+        q"""override def fetch(any: Any): Option[$tpe] = any match {
+        case v: java.util.ArrayList[Double] => Option(v.asScala.toArray[Double].view.map(_.toFloat).toArray)
+        case _ => None
+     } """
+      case t if t =:= weakTypeOf[Array[Double]] =>
+        q"""override def fetch(any: Any): Option[$tpe] = any match {
+        case v: java.util.ArrayList[Double] => Option(v.asScala.toArray[Double])
         case _ => None
      } """
       case t if t =:= weakTypeOf[Map[Int, String]] =>
