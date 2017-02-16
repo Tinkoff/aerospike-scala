@@ -61,14 +61,14 @@ trait GetProvider {
   def get(policy: BatchPolicy, records: util.List[BatchRead]): Future[Unit] =
     Future(client.get(policy, records))
 
-  def get(policy: BatchPolicy, keys: Array[Key], binNames: String*): Future[Array[Record]] =
-    Future(client.get(policy, keys, binNames: _*))
+  def get(policy: BatchPolicy, keys: Array[Key], binNames: String*): Array[Option[Record]] =
+    client.get(policy, keys, binNames: _*).map(Option.apply)
 
-  def get(policy: BatchPolicy, keys: Array[Key]): Future[Array[Record]] =
-    Future(client.get(policy, keys))
+  def get(policy: BatchPolicy, keys: Array[Key]): Array[Option[Record]] =
+    client.get(policy, keys).map(Option.apply)
 
-  def get(policy: Policy, key: Key, binNames: String*): Future[Record] =
-    Future(client.get(policy, key, binNames: _*))
+  def get(policy: Policy, key: Key, binNames: String*): Option[Record] =
+    Option(client.get(policy, key, binNames: _*))
 
-  def get(policy: Policy, key: Key): Future[Record] = Future(client.get(policy, key))
+  def get(policy: Policy, key: Key): Option[Record] = Option(client.get(policy, key))
 }

@@ -28,7 +28,7 @@ val copyright = headers := Map(
 )
 
 val setts = Seq(organization := "ru.tinkoff",
-  version := "1.1.11",
+  version := "1.1.12",
   scalaVersion := "2.11.8",
   scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8"),
   copyright,
