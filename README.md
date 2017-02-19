@@ -3,7 +3,7 @@
 
 To start working with Aerospike using this DSL you have to add dependency sbt:
 ```sh
-"ru.tinkoff" % "aerospike-scala" % "1.1.11",
+"ru.tinkoff" % "aerospike-scala" % "1.1.12",
 "com.aerospike" % "aerospike-client" % "3.3.1", // in case you don't have it
 "ru.tinkoff" % "aerospike-scala-example" % "1.1.11" // usage examples
 `````
