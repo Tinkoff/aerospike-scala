@@ -37,8 +37,11 @@ case class SampleKBScheme(spike: SpikeImpl) extends KBScheme[String, Int] {
      For example Map("a" -> 2, "b" -> 13) for key = "k1" will look like this: k1 -> List(Bin("a", 2), Bin("b", 13)) */
   def putMany(k: String, a: MBin[Int])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Int](CallKB.Put, k, a)
 
-  def getOne(k: String)(implicit e: ExecutionContext): Future[(String, Option[Int])] = spike.getByKey[String, Int](k, Nil).map(_._1.head)
+  def getOne(k: String)(implicit e: ExecutionContext): Future[(String, Option[Int])] =
+    spike.getByKey[String, Int](k, Nil).map(optValue =>
+      optValue.flatMap(_._1.find(_._2.nonEmpty)).getOrElse(throw new Exception("No data found")))
 
   def getMany(k: String)(implicit e: ExecutionContext): Future[Map[String, Option[Int]]] = spike
-    .getByKey[String, Int](k, Nil).map(_._1)
+    .getByKey[String, Int](k, Nil).map(optValue =>
+    optValue.map(_._1).getOrElse(throw new Exception("No data found")))
 }
