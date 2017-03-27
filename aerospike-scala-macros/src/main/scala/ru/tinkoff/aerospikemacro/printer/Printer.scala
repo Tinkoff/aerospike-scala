@@ -36,7 +36,6 @@ object Printer {
     }
 
     val isArray = tpe.widen.typeSymbol.name.eq(TypeName("Array"))
-    println("isArray " + isArray)
 
     q"""
        println("-"*20)

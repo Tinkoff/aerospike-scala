@@ -71,8 +71,7 @@ trait Spike {
       implicit kC: KeyWrapper[K],
       bC: BinWrapper[B],
       optBP: Option[BatchPolicy] = None,
-      ec: ExecutionContext)
-    : Future[List[Option[(Map[String, Option[B]], Int, Int)]]]
+      ec: ExecutionContext): Future[List[Option[(Map[String, Option[B]], Int, Int)]]]
 
   def getByKeysWithListener[K, L](ks: Array[K],
                                   listener: L,
