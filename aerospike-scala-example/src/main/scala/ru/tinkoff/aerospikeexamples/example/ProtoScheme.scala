@@ -16,18 +16,19 @@
 package ru.tinkoff.aerospikeexamples.example
 
 import com.aerospike.client.{Key, Value}
-import com.aerospike.client.Value.{BytesValue, StringValue}
+import com.aerospike.client.Value.StringValue
 import ru.tinkoff.aerospike.dsl.{CallKB, SpikeImpl}
 import ru.tinkoff.aerospike.dsl.scheme.Scheme
 import ru.tinkoff.aerospikemacro.converters.KeyWrapper
-import ru.tinkoff.aerospikescala.domain.{MBin, SingleBin}
+import ru.tinkoff.aerospikescala.domain.SingleBin
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
-import java.util.{List => JList, Map => JMap}
 
 import com.aerospike.client.{Bin, Record, Value}
-import com.aerospike.client.Value.{BlobValue, ListValue, MapValue, ValueArray}
+import ru.tinkoff.aerospikeexamples.designers.Designer
+import ru.tinkoff.aerospike.parser.ProtoBinWrapper
+import ru.tinkoff.aerospike.parser.ProtoBinWrapper._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
@@ -36,12 +37,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
   */
 class ProtoScheme extends Scheme[String] {
 
-  import ru.tinkoff.aerospikeexamples.designers.Designer
-  import ru.tinkoff.aerospikeexamples.designers.Designers
-  import ru.tinkoff.aerospikeexamples.designers.Designer._
-
-  import ru.tinkoff.aerospikeproto.ProtoBinWrapper.materializeBinWrapper
-
   implicit val dbc = AClient.dbc
   val spike: SpikeImpl = AClient.spikeImpl
 
@@ -49,9 +44,8 @@ class ProtoScheme extends Scheme[String] {
     spike.callKB[String, Designer](CallKB.Put, k, a)
 
   def getDesigner(k: String)(implicit e: ExecutionContext): Future[Designer] =
-    spike.getByKey[String, Designer](k).map(o =>
-      o.flatMap(e => e._1.values.filter(_.nonEmpty).head)
-        .getOrElse(throw new Exception("No data found")))
+    spike.getByKey[String, Designer](k).map(_.map(_._1.values.head.get)
+      .getOrElse(throw new Exception(s"No designers data found for key = $k")))
 
  /* def putDesigners(k: String, a: SingleBin[Designers])(implicit e: ExecutionContext): Future[Unit] =
     spike.callKB[String, Designers](CallKB.Put, k, a)

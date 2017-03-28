@@ -13,19 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ru.tinkoff.aerospikeproto
+package ru.tinkoff.aerospike.parser
 
-
+import ru.tinkoff.aerospike.proto.ArrayParser
 import ru.tinkoff.aerospikemacro.converters.BinWrapper
 import ru.tinkoff.aerospikescala.domain.{MBin, SingleBin}
 
-import scala.collection.JavaConversions
 import scala.collection.immutable.Map
-import scala.reflect.macros.blackbox
-import scala.util.Try
 import scala.language.experimental.macros
-import scala.reflect.ClassTag
-import scala.reflect.internal.Flags
+import scala.reflect.macros.blackbox
+import ru.tinkoff.aerospike.proto.ArrayParser
 
 /**
   * @author MarinaSigaeva
@@ -34,9 +31,9 @@ import scala.reflect.internal.Flags
 
 object ProtoBinWrapper {
 
-  implicit def materializeBinWrapper[T]: BinWrapper[T] = macro materializeBinWrapperImpl[T]
+  implicit def materializeProtoWrapper[T](implicit ap: ArrayParser[T]): BinWrapper[T] = macro materializeProto[T]
 
-  def materializeBinWrapperImpl[T: c.WeakTypeTag](c: blackbox.Context): c.Expr[BinWrapper[T]] = {
+  def materializeProto[T: c.WeakTypeTag](c: blackbox.Context)(ap: c.Expr[ArrayParser[T]]): c.Expr[BinWrapper[T]] = {
     import c.universe._
     val tpe = weakTypeOf[T]
     println("ProtoBin created " + tpe)
@@ -52,47 +49,14 @@ object ProtoBinWrapper {
     //val parseArray = ValDef(tpe.typeSymbol.fullName.dropRight(tpeLen) + "parseFrom(arr)")
     val importp = q"""import $pack.parseFrom"""
     val b2 = PackageDef(RefTree(q"zxc", TermName("treeName")), List(q"abc"))
-   // val clsName = TermName(c.freshName(pack))
-
-
-    import scala.reflect.internal.FlagSets
-    import scala.reflect.api._
-
-/*    val ke = DefDef(Modifiers(),
-      TermName("parse"),
-      List(),
-      List(List(
-      ValDef(Modifiers(), TermName("arr"),
-        AppliedTypeTree(Ident(TermName("scala.Array")), List(Ident(TermName("scala.Byte")))), EmptyTree))),
-      TypeTree(),
-      Apply(Select(Ident(TermName("ru.tinkoff.aerospikeexamples.designers.Designer")), TermName("parseFrom")), List(Ident(TermName("arr")))))*/
-
-    ///val bbb = Apply(Select(Ident(TermName(pack)), TermName("parseFrom")), List(Ident(TermName("arr"))))
-
-/*    val imp = Expr(Block(
-      stats = List(DefDef(Modifiers(), TermName("parse"), List(),
-      List(List(ValDef(Modifiers(PARAM), TermName("arr"), AppliedTypeTree(Ident(scala.Array), List(Ident(scala.Byte))), EmptyTree))),
-      TypeTree(),
-      Apply(Select(Ident("ru.tinkoff.aerospikeexamples.designers.Designer"), TermName("parseFrom")),
-        List(Ident(TermName("arr")))))),
-      expr = Literal(Constant(()))))*/
-   // val k = TermName(c.freshName(pack + "parseFrom(arr)"))
 
     val kreates = c.Expr[BinWrapper[T]] {
       q"""
-      $importp
-      import java.util.{List => JList, Map => JMap}
+
       import com.aerospike.client.{Bin, Record, Value}
-      import com.aerospike.client.Value.{BlobValue, ListValue, MapValue, ValueArray}
       import scala.collection.JavaConversions._
       import scala.collection.JavaConverters._
-      import scala.collection.mutable.{Seq => mSeq}
       import scala.language.experimental.macros
-      import shapeless.{HList, _}
-      import shapeless.HList.hlistOps
-      import syntax.std.traversable._
-      import scala.collection.immutable.ListMap
-      import ru.tinkoff.aerospikemacro.cast.Caster._
       import ru.tinkoff.aerospikemacro.converters._
       import com.aerospike.client.Value.BytesValue
 
@@ -118,7 +82,7 @@ object ProtoBinWrapper {
         override def fetch(any: Any): Option[$tpe] = Try {
           Value.getFromRecordObject(any) match {
             case b: BytesValue => b.getObject match {
-            case arr: Array[Byte] => parseFrom(arr)
+            case arr: Array[Byte] => ap.parse(arr)
           }
          }
         }.toOption
