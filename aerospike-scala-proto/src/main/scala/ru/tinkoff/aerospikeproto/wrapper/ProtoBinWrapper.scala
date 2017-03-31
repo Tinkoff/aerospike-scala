@@ -21,6 +21,9 @@ import com.trueaccord.lenses.Updatable
 import com.trueaccord.scalapb.{GeneratedMessage, Message}
 import ru.tinkoff.aerospikemacro.converters.BinWrapper
 
+import scala.language.experimental.macros
+import scala.reflect.macros.blackbox
+
 /**
   * @author MarinaSigaeva
   * @since 23.03.17
@@ -38,4 +41,32 @@ trait ProtoBinWrapper[T <: GeneratedMessage with Message[T] with Updatable[T]] e
   }.toOption
 
   def parse: Array[Byte] => T
+}
+
+object ProtoBinWrapper {
+  implicit def materialize[T <: GeneratedMessage
+    with Message[T] with Updatable[T]]: ProtoBinWrapper[T] = macro impl[T]
+
+  def impl[T <: GeneratedMessage with Message[T] with Updatable[T] : c.WeakTypeTag]
+  (c: blackbox.Context): c.Expr[ProtoBinWrapper[T]] = {
+    import c.universe._
+    val tpe = weakTypeOf[T]
+
+    val simpleName = tpe.typeSymbol.fullName.split('.').last
+    val termName = q"${TermName(simpleName)}"
+
+    c.Expr[ProtoBinWrapper[T]] {
+      q"""
+      import com.aerospike.client.Value
+      import com.aerospike.client.Value.BytesValue
+      import com.trueaccord.lenses.Updatable
+      import com.trueaccord.scalapb.{GeneratedMessage, Message}
+      import ru.tinkoff.aerospikemacro.converters.BinWrapper
+
+      new ProtoBinWrapper[$tpe] {
+        override def parse: Array[Byte] => $tpe = $termName.parseFrom
+      }
+     """
+    }
+  }
 }

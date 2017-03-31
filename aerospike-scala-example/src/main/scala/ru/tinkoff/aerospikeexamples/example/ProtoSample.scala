@@ -25,7 +25,9 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration.Inf
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.experimental.macros
-
+import ru.tinkoff.aerospikeexamples.designers.designers.Designer
+import ru.tinkoff.aerospikeexamples.designers.designers.Designers
+import ProtoBinWrapper._
 
 /**
   * @author MarinaSigaeva 
@@ -35,14 +37,6 @@ object ProtoSample extends App {
 
   val db = new ProtoScheme
   implicit val dbc = AClient.dbc
-
-  implicit val pw1 = new ProtoBinWrapper[Designer] {
-    def parse: Array[Byte] => Designer = ru.tinkoff.aerospikeexamples.designers.designers.Designer.parseFrom
-  }
-
-  implicit val pw2 = new ProtoBinWrapper[Designers] {
-    def parse: Array[Byte] => Designers = ru.tinkoff.aerospikeexamples.designers.designers.Designers.parseFrom
-  }
 
   val one = Designer("Karl Lagerfeld", 83)
   val many = Designers(List(one, Designer("Diane von Furstenberg", 70), Designer("Donatella Versace", 61)))
