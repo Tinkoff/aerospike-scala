@@ -15,13 +15,16 @@
  */
 package ru.tinkoff.aerospikeexamples.example
 
+import ru.tinkoff.aerospikemacro.printer.Printer.{printNameValue => show}
+import ru.tinkoff.aerospikeexamples.designers.designers.{Designer, Designers}
+import ru.tinkoff.aerospikemacro.converters.KeyWrapper
+import ru.tinkoff.aerospikeproto.wrapper.ProtoBinWrapper
 import ru.tinkoff.aerospikescala.domain.SingleBin
-import ru.tinkoff.aerospikemacro.printer.Printer.{ printNameValue => show }
-import ru.tinkoff.aerospikeexamples.designers.{Designer, Designers}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration.Inf
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.language.experimental.macros
 
 
 /**
@@ -30,17 +33,26 @@ import scala.concurrent.ExecutionContext.Implicits.global
   */
 object ProtoSample extends App {
 
-  val database = new ProtoScheme
+  val db = new ProtoScheme
+  implicit val dbc = AClient.dbc
+
+  implicit val pw1 = new ProtoBinWrapper[Designer] {
+    def parse: Array[Byte] => Designer = ru.tinkoff.aerospikeexamples.designers.designers.Designer.parseFrom
+  }
+
+  implicit val pw2 = new ProtoBinWrapper[Designers] {
+    def parse: Array[Byte] => Designers = ru.tinkoff.aerospikeexamples.designers.designers.Designers.parseFrom
+  }
 
   val one = Designer("Karl Lagerfeld", 83)
   val many = Designers(List(one, Designer("Diane von Furstenberg", 70), Designer("Donatella Versace", 61)))
 
-  database.putDesigner("protoDesigner", SingleBin("pDesigner", one))
- // database.putDesigners("protoDesigners", SingleBin("pDesigners", many))
+  db.put("protoDesigner", SingleBin("pDesigner", one))
+  db.put("protoDesigners", SingleBin("pDesigners", many))
 
-  val oneDesigner = Await.result(database.getDesigner("protoDesigner"), Inf)
- // val manyDesigners = Await.result(database.getDesigners("protoDesigners"), Inf)
+  val oneDesigner = Await.result(db.get[Designer]("protoDesigner"), Inf)
+  val manyDesigners = Await.result(db.get[Designers]("protoDesigners"), Inf)
 
-   show(oneDesigner)
- //  show(manyDesigners)
+  show(oneDesigner)
+  show(manyDesigners)
 }

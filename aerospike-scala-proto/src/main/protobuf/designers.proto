@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+//package tutorial;
+
+option java_package = "ru.tinkoff.aerospikeproto";
+option java_outer_classname = "CatProtos";
+
+message Cat {
+  string name = 1;
+  int32 age = 2;
+}

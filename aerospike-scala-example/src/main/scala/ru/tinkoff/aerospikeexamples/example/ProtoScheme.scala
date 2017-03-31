@@ -15,49 +15,40 @@
  */
 package ru.tinkoff.aerospikeexamples.example
 
-import com.aerospike.client.{Key, Value}
-import com.aerospike.client.Value.{BytesValue, StringValue}
-import ru.tinkoff.aerospike.dsl.{CallKB, SpikeImpl}
-import ru.tinkoff.aerospike.dsl.scheme.Scheme
+import com.aerospike.client.policy.WritePolicy
+import com.trueaccord.lenses.Updatable
+import com.trueaccord.scalapb.{GeneratedMessage, Message}
+import ru.tinkoff.aerospike.dsl.CallKB
 import ru.tinkoff.aerospikemacro.converters.KeyWrapper
-import ru.tinkoff.aerospikescala.domain.{MBin, SingleBin}
+import ru.tinkoff.aerospikescala.domain.SingleBin
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
-import java.util.{List => JList, Map => JMap}
-
-import com.aerospike.client.{Bin, Record, Value}
-import com.aerospike.client.Value.{BlobValue, ListValue, MapValue, ValueArray}
+import ru.tinkoff.aerospikeproto.wrapper.ProtoBinWrapper
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
-  * @author MarinaSigaeva 
+  * @author MarinaSigaeva
   * @since 23.03.17
   */
-class ProtoScheme extends Scheme[String] {
+class ProtoScheme {
 
-  import ru.tinkoff.aerospikeexamples.designers.Designer
-  import ru.tinkoff.aerospikeexamples.designers.Designers
-  import ru.tinkoff.aerospikeexamples.designers.Designer._
+  val client = AClient.spikeImpl
 
-  import ru.tinkoff.aerospikeproto.ProtoBinWrapper.materializeBinWrapper
+  def put[K, I <: GeneratedMessage with Message[I] with Updatable[I], R <: ProtoBinWrapper[I]]
+  (k: K, bin: SingleBin[I])(implicit kw: KeyWrapper[K],
+                            bw: R, e: ExecutionContext,
+                            pw: Option[WritePolicy] = None): Future[Unit] = {
+    client.callKB[K, I](CallKB.Put, k, bin)(kw, bw, pw)
+  }
 
-  implicit val dbc = AClient.dbc
-  val spike: SpikeImpl = AClient.spikeImpl
+  def absGet[K, I <: GeneratedMessage with Message[I] with Updatable[I], R <: ProtoBinWrapper[I]]
+  (k: K)(implicit kw: KeyWrapper[K], bw: R, e: ExecutionContext,
+         pw: Option[WritePolicy] = None): Future[Map[String, Option[I]]] = {
+    client.getByKey[K, I](k)(kw, bw, e, pw).map(r => r.map(_._1).getOrElse(throw new Exception("No data found")))
+  }
 
-  def putDesigner(k: String, a: SingleBin[Designer])(implicit e: ExecutionContext): Future[Unit] =
-    spike.callKB[String, Designer](CallKB.Put, k, a)
-
-  def getDesigner(k: String)(implicit e: ExecutionContext): Future[Designer] =
-    spike.getByKey[String, Designer](k).map(o =>
-      o.flatMap(e => e._1.values.filter(_.nonEmpty).head)
-        .getOrElse(throw new Exception("No data found")))
-
- /* def putDesigners(k: String, a: SingleBin[Designers])(implicit e: ExecutionContext): Future[Unit] =
-    spike.callKB[String, Designers](CallKB.Put, k, a)
-
-  def getDesigners(k: String)(implicit e: ExecutionContext): Future[Designers] =
-    spike.getByKey[String, Designers](k).map(o =>
-    o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))*/
-
+  def get[I <: GeneratedMessage with Message[I] with Updatable[I]]
+  (k: String)(implicit kw: KeyWrapper[String], bw: ProtoBinWrapper[I],
+              e: ExecutionContext, pw: Option[WritePolicy] = None): Future[Map[String, Option[I]]] =
+    absGet[String, I, ProtoBinWrapper[I]](k)(kw, bw, e, pw)
 }

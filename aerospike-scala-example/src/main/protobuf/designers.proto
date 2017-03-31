@@ -1,9 +1,9 @@
 syntax = "proto3";
 
-package ru.tinkoff.aerospikeexamples;
+package ru.tinkoff.aerospikeexamples.designers;
 
 option java_multiple_files = true;
-option java_package = "ru.tinkoff.aerospikeexamples";
+option java_package = "ru.tinkoff.aerospikeexamples.designers";
 option java_outer_classname = "DesignerProto";
 
 message Designer {
