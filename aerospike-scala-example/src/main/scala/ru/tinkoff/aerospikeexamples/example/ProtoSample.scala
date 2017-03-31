@@ -16,7 +16,6 @@
 package ru.tinkoff.aerospikeexamples.example
 
 import ru.tinkoff.aerospikemacro.printer.Printer.{printNameValue => show}
-import ru.tinkoff.aerospikeexamples.designers.designers.{Designer, Designers}
 import ru.tinkoff.aerospikemacro.converters.KeyWrapper
 import ru.tinkoff.aerospikeproto.wrapper.ProtoBinWrapper
 import ru.tinkoff.aerospikescala.domain.SingleBin
