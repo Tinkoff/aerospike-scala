@@ -8,23 +8,23 @@ val copyright = headers := Map(
   "scala" -> (
     HeaderPattern.cStyleBlockComment,
     """|/*
-      | * Copyright (c) 2016 Tinkoff
-      | *
-      | * Licensed under the Apache License, Version 2.0 (the "License");
-      | * you may not use this file except in compliance with the License.
-      | * You may obtain a copy of the License at
-      | *
-      | *    http://www.apache.org/licenses/LICENSE-2.0
-      | *
-      | * Unless required by applicable law or agreed to in writing, software
-      | * distributed under the License is distributed on an "AS IS" BASIS,
-      | * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-      | * See the License for the specific language governing permissions and
-      | * limitations under the License.
-      | */
-      |
-      | """.stripMargin
-    )
+       | * Copyright (c) 2016 Tinkoff
+       | *
+       | * Licensed under the Apache License, Version 2.0 (the "License");
+       | * you may not use this file except in compliance with the License.
+       | * You may obtain a copy of the License at
+       | *
+       | *    http://www.apache.org/licenses/LICENSE-2.0
+       | *
+       | * Unless required by applicable law or agreed to in writing, software
+       | * distributed under the License is distributed on an "AS IS" BASIS,
+       | * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+       | * See the License for the specific language governing permissions and
+       | * limitations under the License.
+       | */
+       |
+       | """.stripMargin
+  )
 )
 
 val setts = Seq(organization := "ru.tinkoff",
@@ -35,7 +35,6 @@ val setts = Seq(organization := "ru.tinkoff",
   licenses := Seq(("Apache License, Version 2.0", url("https://www.apache.org/licenses/LICENSE-2.0"))),
   homepage := Some(url("http://tinkoff.ru")),
   sonatypeProfileName := "ru.tinkoff",
-  useGpg := true,
   pgpReadOnly := false,
   publishMavenStyle := true,
   publishArtifact in Test := false,
@@ -66,6 +65,10 @@ val setts = Seq(organization := "ru.tinkoff",
     "",
     ""))
 
+lazy val protoSetting = PB.targets in Compile := Seq(
+  scalapb.gen() -> (sourceManaged in Compile).value
+)
+
 val testLibs = Seq(
   "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.0",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
@@ -88,10 +91,16 @@ lazy val domain = Project(id = "aerospike-scala-domain",
   base = file("aerospike-scala-domain"))
   .settings(setts ++ (moduleName := "aerospike-scala-domain"))
 
+lazy val protoBin = Project(id = "aerospike-scala-proto",
+  base = file("aerospike-scala-proto"), dependencies = Seq(root))
+  .settings(setts ++ (moduleName := "aerospike-scala-proto") ++
+    (libraryDependencies ++= mainLib) ++ protoSetting)
+
 lazy val example = Project(id = "aerospike-scala-example",
-  base = file("aerospike-scala-example"), dependencies = Seq(root))
+  base = file("aerospike-scala-example"), dependencies = Seq(root, protoBin))
   .settings(setts ++ (moduleName := "aerospike-scala-example") ++
-    (libraryDependencies ++= mainLib))
+    (libraryDependencies ++= mainLib) ++ protoSetting)
+
 
 lazy val root = Project(id = "aerospike-scala",
   base = file("."),
