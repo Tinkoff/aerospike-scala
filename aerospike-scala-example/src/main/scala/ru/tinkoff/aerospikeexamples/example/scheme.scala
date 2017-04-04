@@ -23,7 +23,9 @@ import ru.tinkoff.aerospike.dsl.{CallKB, SpikeImpl}
 import ru.tinkoff.aerospikemacro.converters.{BinWrapper, KeyWrapper}
 import ru.tinkoff.aerospikescala.domain.{ByteSegment, SingleBin}
 import shapeless._
-import java.util.ArrayList
+import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
+import com.aerospike.client.Value
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
@@ -50,10 +52,13 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
   To get your Sample value properly you need to write fetch() function as it is shown below
   */
   implicit val sampleWrap = new BinWrapper[Sample] {
-    override def fetch(any: Any): Option[Sample] = any match {
-      case m: java.util.HashMap[Any, Any] => scala.util.Try(Sample(m("name").toString, m("i").toString.toInt)).toOption
-      case _ => None
-    }
+    override def fetch(any: Any): Option[Sample] = scala.util.Try {
+      Value.getFromRecordObject(any) match {
+        case m: MapValue => m.getObject match {
+          case ms: java.util.Map[String@unchecked, Any@unchecked] => Sample(ms("name").toString, ms("i").toString.toInt)
+        }
+      }
+    }.toOption
   }
 
   /* This is custom wrapper for Bin of type Map[Sample, String]
@@ -70,13 +75,16 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
     override def toValue(v: Map[Sample, String]): MapValue =
       new MapValue(v.map { case (sample, value) => sample.toString -> value })
 
-    override def fetch(any: Any): Option[Map[Sample, String]] = any match {
-      case m: java.util.HashMap[Any, String] => scala.util.Try(m.view.map {
-        case (tr, v) if tr.toString.matches("Sample\\((\\w+)\\,(\\d+)\\)") =>
-          tr.toString match {
-            case trRex(n, i) => Sample(n, i.toInt) -> v
-          }
-      }.toMap).toOption
+    override def fetch(any: Any): Option[Map[Sample, String]] = Value.getFromRecordObject(any) match {
+      case m: MapValue => m.getObject match {
+        case ms: java.util.Map[Any@unchecked, String@unchecked] => scala.util.Try(ms.asScala.map {
+          case (tr, v) if tr.toString.matches("Sample\\((\\w+)\\,(\\d+)\\)") =>
+            tr.toString match {
+              case trRex(n, i) => Sample(n, i.toInt) -> v
+            }
+        }.toMap).toOption
+        case _ => None
+      }
       case _ => None
     }
   }
@@ -139,6 +147,8 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
 
   def putListDouble(k: String, a: SingleBin[List[Double]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, List[Double]](CallKB.Put, k, a)
 
+  def putListBoolean(k: String, a: SingleBin[List[Boolean]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, List[Boolean]](CallKB.Put, k, a)
+
   def putSample(k: String, a: SingleBin[Sample])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Sample](CallKB.Put, k, a)
 
   def putTuple(k: String, a: SingleBin[(String, Long, Double)])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, (String, Long, Double)](CallKB.Put, k, a)
@@ -146,6 +156,8 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
   def putSeqArrayBuffer(k: String, a: SingleBin[Seq[ArrayBuffer[Double]]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Seq[ArrayBuffer[Double]]](CallKB.Put, k, a)
 
   def putArrayByte(k: String, a: SingleBin[Array[Byte]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Array[Byte]](CallKB.Put, k, a)
+
+  def putArrayBoolean(k: String, a: SingleBin[Array[Boolean]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Array[Boolean]](CallKB.Put, k, a)
 
   def putArrayString(k: String, a: SingleBin[Array[String]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Array[String]](CallKB.Put, k, a)
 
@@ -159,108 +171,114 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
 
   def putByteSegment(k: String, a: SingleBin[ByteSegment])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, ByteSegment](CallKB.Put, k, a)
 
-  def getString(k: String)(implicit e: ExecutionContext): Future[String] = spike.getByKey[String, String](k, Nil).map(o =>
+  def getString(k: String)(implicit e: ExecutionContext): Future[String] = spike.getByKey[String, String](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getInt(k: String)(implicit e: ExecutionContext): Future[Int] = spike.getByKey[String, Int](k, Nil).map(o =>
+  def getInt(k: String)(implicit e: ExecutionContext): Future[Int] = spike.getByKey[String, Int](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getFloat(k: String)(implicit e: ExecutionContext): Future[Float] = spike.getByKey[String, Float](k, Nil).map(o =>
+  def getFloat(k: String)(implicit e: ExecutionContext): Future[Float] = spike.getByKey[String, Float](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getDouble(k: String)(implicit e: ExecutionContext): Future[Double] = spike.getByKey[String, Double](k, Nil).map(o =>
+  def getDouble(k: String)(implicit e: ExecutionContext): Future[Double] = spike.getByKey[String, Double](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getBoolean(k: String)(implicit e: ExecutionContext): Future[Boolean] = spike.getByKey[String, Boolean](k, Nil).map(o =>
+  def getBoolean(k: String)(implicit e: ExecutionContext): Future[Boolean] = spike.getByKey[String, Boolean](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getShort(k: String)(implicit e: ExecutionContext): Future[Short] = spike.getByKey[String, Short](k, Nil).map(o =>
+  def getShort(k: String)(implicit e: ExecutionContext): Future[Short] = spike.getByKey[String, Short](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getLong(k: String)(implicit e: ExecutionContext): Future[Long] = spike.getByKey[String, Long](k, Nil).map(o =>
+  def getLong(k: String)(implicit e: ExecutionContext): Future[Long] = spike.getByKey[String, Long](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getChar(k: String)(implicit e: ExecutionContext): Future[Char] = spike.getByKey[String, Char](k, Nil).map(o =>
+  def getChar(k: String)(implicit e: ExecutionContext): Future[Char] = spike.getByKey[String, Char](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getByte(k: String)(implicit e: ExecutionContext): Future[Byte] = spike.getByKey[String, Byte](k, Nil).map(o =>
+  def getByte(k: String)(implicit e: ExecutionContext): Future[Byte] = spike.getByKey[String, Byte](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
   def getHList(k: String)(implicit e: ExecutionContext): Future[String :: Int :: Int :: HNil] = spike
-    .getByKey[String, String :: Int :: Int :: HNil](k, Nil).map(o =>
+    .getByKey[String, String :: Int :: Int :: HNil](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
   def getHList2(k: String)(implicit e: ExecutionContext): Future[String :: Int :: Float :: List[String] :: List[Int] :: HNil] = spike
-    .getByKey[String, String :: Int :: Float :: List[String] :: List[Int] :: HNil](k, Nil).map(o =>
+    .getByKey[String, String :: Int :: Float :: List[String] :: List[Int] :: HNil](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
   def getSample(k: String)(implicit e: ExecutionContext): Future[Sample] = spike
-    .getByKey[String, Sample](k, Nil).map(o =>
+    .getByKey[String, Sample](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
   def getTuple(k: String)(implicit e: ExecutionContext): Future[(String, Long, Double)] = spike
-    .getByKey[String, (String, Long, Double)](k, Nil).map(o =>
+    .getByKey[String, (String, Long, Double)](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getListSt(k: String)(implicit e: ExecutionContext): Future[List[String]] = spike.getByKey[String, List[String]](k, Nil).map(o =>
+  def getListSt(k: String)(implicit e: ExecutionContext): Future[List[String]] = spike.getByKey[String, List[String]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getListInt(k: String)(implicit e: ExecutionContext): Future[List[Int]] = spike.getByKey[String, List[Int]](k, Nil).map(o =>
+  def getListInt(k: String)(implicit e: ExecutionContext): Future[List[Int]] = spike.getByKey[String, List[Int]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getListLong(k: String)(implicit e: ExecutionContext): Future[List[Long]] = spike.getByKey[String, List[Long]](k, Nil).map(o =>
+  def getListLong(k: String)(implicit e: ExecutionContext): Future[List[Long]] = spike.getByKey[String, List[Long]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getListFloat(k: String)(implicit e: ExecutionContext): Future[List[Float]] = spike.getByKey[String, List[Float]](k, Nil).map(o =>
+  def getListFloat(k: String)(implicit e: ExecutionContext): Future[List[Float]] = spike.getByKey[String, List[Float]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getListDouble(k: String)(implicit e: ExecutionContext): Future[List[Double]] = spike.getByKey[String, List[Double]](k, Nil).map(o =>
+  def getListDouble(k: String)(implicit e: ExecutionContext): Future[List[Double]] = spike.getByKey[String, List[Double]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getSeqArrayBuffer(k: String)(implicit e: ExecutionContext): Future[Seq[ArrayBuffer[Double]]] = spike.getByKey[String, Seq[ArrayBuffer[Double]]](k, Nil).map(o =>
+  def getListBoolean(k: String)(implicit e: ExecutionContext): Future[List[Boolean]] = spike.getByKey[String, List[Boolean]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getArrayByte(k: String)(implicit e: ExecutionContext): Future[Array[Byte]] = spike.getByKey[String, Array[Byte]](k, Nil).map(o =>
+  def getSeqArrayBuffer(k: String)(implicit e: ExecutionContext): Future[Seq[ArrayBuffer[Double]]] = spike.getByKey[String, Seq[ArrayBuffer[Double]]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getArrayString(k: String)(implicit e: ExecutionContext): Future[Array[String]] = spike.getByKey[String, Array[String]](k, Nil).map(o =>
+  def getArrayByte(k: String)(implicit e: ExecutionContext): Future[Array[Byte]] = spike.getByKey[String, Array[Byte]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getArrayInt(k: String)(implicit e: ExecutionContext): Future[Array[Int]] = spike.getByKey[String, Array[Int]](k, Nil).map(o =>
+  def getArrayString(k: String)(implicit e: ExecutionContext): Future[Array[String]] = spike.getByKey[String, Array[String]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getArrayLong(k: String)(implicit e: ExecutionContext): Future[Array[Long]] = spike.getByKey[String, Array[Long]](k, Nil).map(o =>
+  def getArrayInt(k: String)(implicit e: ExecutionContext): Future[Array[Int]] = spike.getByKey[String, Array[Int]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getArrayFloat(k: String)(implicit e: ExecutionContext): Future[Array[Float]] = spike.getByKey[String, Array[Float]](k, Nil).map(o =>
+  def getArrayLong(k: String)(implicit e: ExecutionContext): Future[Array[Long]] = spike.getByKey[String, Array[Long]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getArrayDouble(k: String)(implicit e: ExecutionContext): Future[Array[Double]] = spike.getByKey[String, Array[Double]](k, Nil).map(o =>
+  def getArrayFloat(k: String)(implicit e: ExecutionContext): Future[Array[Float]] = spike.getByKey[String, Array[Float]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getByteSegment(k: String)(implicit e: ExecutionContext): Future[ByteSegment] = spike.getByKey[String, ByteSegment](k, Nil).map(o =>
+  def getArrayDouble(k: String)(implicit e: ExecutionContext): Future[Array[Double]] = spike.getByKey[String, Array[Double]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getMap(k: String)(implicit e: ExecutionContext): Future[Map[String, String]] = spike.getByKey[String, Map[String, String]](k, Nil).map(o =>
+  def getArrayBoolean(k: String)(implicit e: ExecutionContext): Future[Array[Boolean]] = spike.getByKey[String, Array[Boolean]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getMapIS(k: String)(implicit e: ExecutionContext): Future[Map[Int, String]] = spike.getByKey[String, Map[Int, String]](k, Nil).map(o =>
+  def getByteSegment(k: String)(implicit e: ExecutionContext): Future[ByteSegment] = spike.getByKey[String, ByteSegment](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getMapSI(k: String)(implicit e: ExecutionContext): Future[Map[String, Int]] = spike.getByKey[String, Map[String, Int]](k, Nil).map(o =>
+  def getMap(k: String)(implicit e: ExecutionContext): Future[Map[String, String]] = spike.getByKey[String, Map[String, String]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getMapLong(k: String)(implicit e: ExecutionContext): Future[Map[String, Long]] = spike.getByKey[String, Map[String, Long]](k, Nil).map(o =>
+  def getMapIS(k: String)(implicit e: ExecutionContext): Future[Map[Int, String]] = spike.getByKey[String, Map[Int, String]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getMapFloat(k: String)(implicit e: ExecutionContext): Future[Map[String, Float]] = spike.getByKey[String, Map[String, Float]](k, Nil).map(o =>
+  def getMapSI(k: String)(implicit e: ExecutionContext): Future[Map[String, Int]] = spike.getByKey[String, Map[String, Int]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
-  def getMapDouble(k: String)(implicit e: ExecutionContext): Future[Map[String, Double]] = spike.getByKey[String, Map[String, Double]](k, Nil).map(o =>
+  def getMapLong(k: String)(implicit e: ExecutionContext): Future[Map[String, Long]] = spike.getByKey[String, Map[String, Long]](k).map(o =>
+    o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
+
+  def getMapFloat(k: String)(implicit e: ExecutionContext): Future[Map[String, Float]] = spike.getByKey[String, Map[String, Float]](k).map(o =>
+    o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
+
+  def getMapDouble(k: String)(implicit e: ExecutionContext): Future[Map[String, Double]] = spike.getByKey[String, Map[String, Double]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
   def getMapSimpleString(k: String)(implicit bC: BinWrapper[Map[Sample, String]], e: ExecutionContext): Future[Map[Sample, String]] = spike
-    .getByKey[String, Map[Sample, String]](k, Nil).map(o =>
+    .getByKey[String, Map[Sample, String]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
 }

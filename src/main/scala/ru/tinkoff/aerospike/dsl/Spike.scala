@@ -64,15 +64,14 @@ trait Spike {
   def getByKey[K, B](k: K, bs: List[String] = Nil)(
       implicit kC: KeyWrapper[K],
       bC: BinWrapper[B],
-      optP: Option[Policy] = None,
-      ec: ExecutionContext): Future[Option[(Map[String, Option[B]], Int, Int)]]
+      ec: ExecutionContext,
+      optP: Option[Policy] = None): Future[Option[(Map[String, Option[B]], Int, Int)]]
 
   def getByKeys[K, B](ks: Array[K], bs: List[String] = Nil)(
       implicit kC: KeyWrapper[K],
       bC: BinWrapper[B],
-      optBP: Option[BatchPolicy] = None,
-      ec: ExecutionContext)
-    : Future[List[Option[(Map[String, Option[B]], Int, Int)]]]
+      ec: ExecutionContext,
+      optBP: Option[BatchPolicy] = None): Future[List[Option[(Map[String, Option[B]], Int, Int)]]]
 
   def getByKeysWithListener[K, L](ks: Array[K],
                                   listener: L,

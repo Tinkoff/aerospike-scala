@@ -16,7 +16,7 @@
 
 package ru.tinkoff.aerospikemacro.converters
 
-import com.aerospike.client.Key
+import com.aerospike.client.{Key, Value}
 import org.scalatest.{FlatSpec, Matchers}
 import ru.tinkoff.aerospikemacro.domain.DBCredentials
 

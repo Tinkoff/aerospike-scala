@@ -200,7 +200,7 @@ class SpikeImpl(spikeClient: IAsyncClient)(implicit val ec: ExecutionContext) ex
   }
 
   def getByKey[K, B](k: K, bs: List[String] = Nil)(implicit kC: KeyWrapper[K], bC: BinWrapper[B],
-                                                   optP: Option[Policy] = None, ec: ExecutionContext): Future[Option[(Map[String, Option[B]], Int, Int)]] = {
+                                                   ec: ExecutionContext, optP: Option[Policy] = None): Future[Option[(Map[String, Option[B]], Int, Int)]] = {
     val policy = optP.getOrElse(new Policy)
     if (bs.isEmpty) Future(get(policy, kC(k)).map(bC(_)))(ec) else Future(get(policy, kC(k), bs: _*).map(record => bC(record)))(ec)
   }
@@ -211,7 +211,7 @@ class SpikeImpl(spikeClient: IAsyncClient)(implicit val ec: ExecutionContext) ex
   }
 
   def getByKeys[K, B](ks: Array[K], bs: List[String] = Nil)(implicit kC: KeyWrapper[K], bC: BinWrapper[B],
-                                                            optBP: Option[BatchPolicy] = None, ec: ExecutionContext): Future[List[Option[(Map[String, Option[B]], Int, Int)]]] = {
+                                                            ec: ExecutionContext, optBP: Option[BatchPolicy] = None): Future[List[Option[(Map[String, Option[B]], Int, Int)]]] = {
     val policy = optBP.getOrElse(new BatchPolicy)
     val keys = ks.view.map(k => kC(k)).toArray
     if (bs.isEmpty) Future(get(policy, keys).map(_.map(record => bC(record))).toList)(ec)
