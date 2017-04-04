@@ -33,6 +33,6 @@ trait BatchReadWrapper {
   val binNames: Array[String]
   implicit val dbc: DBCredentials
 
-  def applyO[S](k: S)(implicit kW: KeyWrapper[S]): BatchRead = new BatchRead(kW(k), binNames)
+  def applyO[S <: Any](k: S)(implicit kW: KeyWrapper[S]): BatchRead = new BatchRead(kW(k), binNames)
   def apply = applyO(keyValue)
 }

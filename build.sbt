@@ -94,7 +94,7 @@ lazy val domain = Project(id = "aerospike-scala-domain",
 lazy val protoBin = Project(id = "aerospike-scala-proto",
   base = file("aerospike-scala-proto"), dependencies = Seq(root))
   .settings(setts ++ (moduleName := "aerospike-scala-proto") ++
-    (libraryDependencies ++= mainLib) ++ protoSetting)
+    (libraryDependencies ++= mainLib ++ testLibs) ++ protoSetting)
 
 lazy val example = Project(id = "aerospike-scala-example",
   base = file("aerospike-scala-example"), dependencies = Seq(root, protoBin))

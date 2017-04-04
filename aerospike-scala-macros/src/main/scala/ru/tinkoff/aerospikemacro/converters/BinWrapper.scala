@@ -16,6 +16,8 @@
 
 package ru.tinkoff.aerospikemacro.converters
 
+import com.aerospike.client.Value
+import com.aerospike.client.Value.{FloatValue, ListValue, MapValue, StringValue}
 import ru.tinkoff.aerospikescala.domain.{ByteSegment, MBin, SingleBin}
 
 import scala.language.experimental.macros
@@ -145,15 +147,6 @@ trait BinWrapper[BT] {
 
   def throwClassCast(tpe: String) = throw new ClassCastException(s"Failed to cast $tpe. Please, implement fetch function in BinWrapper")
 
-  def fetchTuple(any: Any): Option[BT] = {
-    any match {
-      case m: java.util.Map[String, Any] => toTuple(m.toMap)
-      case _ => None
-    }
-  }
-
-  def toTuple(m: Map[String, Any]): Option[BT] = None
-
   def toKVmap[K, V](any: Any, getView: String => Array[String] = plain)
                    (implicit k: String => K, v: String => V): Map[K, V] = any match {
     case a: Value =>
@@ -227,23 +220,61 @@ object BinWrapper {
 
     def tupleFetch(ts: List[String]) =
       q"""
-                      override def fetch(any: Any): Option[$tpe] = {
-                                      any match {
-                                        case m: java.util.HashMap[Any, Any] =>
-                                               val res = castTuple(m.asScala.toMap, $ts)
-                                               res.collect{ case t: $tpe => t }
-                                        case _ => None
-                                      }
-           }"""
+                      override def fetch(any: Any): Option[$tpe] = Value.getFromRecordObject(any) match {
+                                 case m: MapValue => m.getObject match {
+                                   case ms: java.util.Map[Any @unchecked, Any @unchecked] =>
+                                     val res = castTuple(ms.asScala.toMap, $ts)
+                                     res.collect { case t: $tpe => t }
+                                   case _ => None
+                                   }
+                                 case _ => None
+                                 }"""
 
     val mh =
-      q"""override def fetch(any: Any): Option[$tpe] = any match {
-             case m: java.util.HashMap[Any, Any] =>
-             val newList = castHListElements(m.asScala.values.toList, $tpeSt)
-             newList.toHList[$tpe]
-             case oth => None
-           }
-        """
+      q"""override def fetch(any: Any): Option[$tpe] = Value.getFromRecordObject(any) match {
+                 case m: MapValue => m.getObject match {
+                   case ms: java.util.Map[Any @unchecked, Any @unchecked] =>
+                     val newList = castHListElements(ms.asScala.values.toList, $tpeSt)
+                     newList.toHList[$tpe]
+                   case _ => None
+                 }
+                 case _ => None
+                }
+               """
+
+    def typedList(pType: Type): Tree =
+      q"""override def fetch(any: Any): Option[$tpe] = Try{Value.getFromRecordObject(any) match {
+                case lv: ListValue => lv.getObject match {
+                   case ls: java.util.List[$pType @unchecked] => ls.toList
+                }
+               }
+              }.toOption """
+
+    def typedArray(pType: Type): Tree =
+      q"""override def fetch(any: Any): Option[$tpe] = Try {
+                  Value.getFromRecordObject(any) match {
+                    case lv: ListValue => lv.getObject match {
+                      case ls: java.util.List[$pType @unchecked] => ls.toStream.toArray
+                    }
+                  }
+                }.toOption """
+
+    def streamedArray(pType: Type, to: Tree): Tree =
+      q"""override def fetch(any: Any): Option[$tpe] = Try {
+                     Value.getFromRecordObject(any) match {
+                       case lv: ListValue => lv.getObject match {
+                         case ls: java.util.List[$pType @unchecked] => ls.toStream.map($to).toArray
+                       }
+                     }
+                   }.toOption """
+
+    def typedMap(k: Type, v: Type): Tree =
+      q""" override def fetch(any: Any): Option[$tpe] = Try{Value.getFromRecordObject(any) match {
+                       case m: MapValue => m.getObject match {
+                         case ms: java.util.Map[$k @unchecked, $v @unchecked] => ms.toMap
+                       }
+                      }
+                     }.toOption"""
 
     def tupleArity(tpe: Type): Int = {
       val rex = "Tuple(\\d{1,2})".r
@@ -255,139 +286,56 @@ object BinWrapper {
 
     val fetchValue = tpe match {
       case t if t.toString.contains("HNil") || t.toString.contains("HList") => mh
-      case t if t =:= weakTypeOf[String] => q"""override def fetch(any: Any): Option[$tpe] = any match {
-        case v: String => Option(v)
-        case oth => scala.util.Try(oth.toString).toOption
-     } """
+
+      case t if t =:= weakTypeOf[String] =>
+        q"""override def fetch(any: Any): Option[$tpe] =
+           Try(Value.getFromRecordObject(any).getObject.toString).toOption"""
+
       case t if t =:= weakTypeOf[Boolean] => q"""override def fetch(any: Any): Option[$tpe] = any match {
         case v: java.lang.Long => Option(v == 1)
         case _ => None
      } """
       case t if t =:= weakTypeOf[Float] => q"""override def fetch(any: Any): Option[$tpe] = any match {
         case v: java.lang.Double => Option(v.toFloat)
-        case v: java.lang.Float => Option(v)
-        case oth => scala.util.Try(oth.asInstanceOf[Float]).toOption
+        case _ => None
      } """
       case t if t =:= weakTypeOf[Char] => q"""override def fetch(any: Any): Option[$tpe] = any match {
       case v: String => v.toString.toCharArray.headOption
-      case oth => scala.util.Try(oth.toString.toCharArray.head).toOption
+      case _ => None
      } """
       case t if t =:= weakTypeOf[Int] => q"""override def fetch(any: Any): Option[$tpe] = any match {
       case v: java.lang.Long => Option(v.toInt)
-      case oth => scala.util.Try(oth.toString.toInt).toOption
+      case _ => None
      } """
       case t if t =:= weakTypeOf[Short] => q"""override def fetch(any: Any): Option[$tpe] = any match {
        case v: java.lang.Long => Option(v.toShort)
-       case oth => scala.util.Try(oth.asInstanceOf[Long].toShort).toOption
+       case _ => None
      } """
-      case t if t =:= weakTypeOf[Byte] => q"""override def fetch(any: Any): Option[$tpe] = {
-         any match {
-               case v: java.lang.Long => Option(v.toByte)
-               case _ => None
-          }
-        }"""
-      case t if t =:= weakTypeOf[List[String]] =>
-        q"""override def fetch(any: Any): Option[$tpe] = any match {
-        case v: java.util.ArrayList[String] => Option(v.toList)
-        case _ => None
-     } """
-      case t if t =:= weakTypeOf[List[Int]] =>
-        q"""override def fetch(any: Any): Option[$tpe] = any match {
-        case v: java.util.ArrayList[Int] => Option(v.toList)
-        case _ => None
-     } """
-      case t if t =:= weakTypeOf[List[Long]] =>
-        q"""override def fetch(any: Any): Option[$tpe] = any match {
-        case v: java.util.ArrayList[Long] => Option(v.toList)
-        case _ => None
-     } """
-      case t if t =:= weakTypeOf[List[Float]] =>
-        q"""override def fetch(any: Any): Option[$tpe] = any match {
-        case v: java.util.ArrayList[Double] => Option(v.view.map(_.toFloat).toList)
-        case _ => None
-     } """
-      case t if t =:= weakTypeOf[List[Double]] =>
-        q"""override def fetch(any: Any): Option[$tpe] = any match {
-        case v: java.util.ArrayList[Double] => Option(v.view.map(_.toDouble).toList)
-        case _ => None
-     } """
-      case t if t =:= weakTypeOf[Array[String]] =>
-        q"""override def fetch(any: Any): Option[$tpe] = any match {
-        case v: java.util.ArrayList[String] => Option(v.asScala.toArray)
-        case _ => None
-     } """
-      case t if t =:= weakTypeOf[Array[Int]] =>
-        q"""override def fetch(any: Any): Option[$tpe] = any match {
-        case v: java.util.ArrayList[Long] => Option(v.asScala.view.map(_.toInt).toArray)
-        case _ => None
-     } """
-      case t if t =:= weakTypeOf[Array[Long]] =>
-        q"""override def fetch(any: Any): Option[$tpe] = any match {
-        case v: java.util.ArrayList[Long] => Option(v.asScala.toArray)
-        case _ => None
-     } """
-      case t if t =:= weakTypeOf[Array[Float]] =>
-        q"""override def fetch(any: Any): Option[$tpe] = any match {
-        case v: java.util.ArrayList[Double] => Option(v.asScala.toArray[Double].view.map(_.toFloat).toArray)
-        case _ => None
-     } """
-      case t if t =:= weakTypeOf[Array[Double]] =>
-        q"""override def fetch(any: Any): Option[$tpe] = any match {
-        case v: java.util.ArrayList[Double] => Option(v.asScala.toArray[Double])
-        case _ => None
-     } """
-      case t if t =:= weakTypeOf[Map[Int, String]] =>
-        q""" override def fetch(any: Any): Option[$tpe] = any match {
-               case v: java.util.HashMap[Any, String] => scala.util.Try(v.view.map{
-                 case (k, v) => k.toString.toInt -> v
-               }.toMap).toOption
-               case _ => None
-             }
-         """
-      case t if t =:= weakTypeOf[Map[String, String]] =>
-        q""" override def fetch(any: Any): Option[$tpe] = any match {
-                   case v: java.util.HashMap[String, String] => Option(v.toMap)
-                   case _ => None
-                }
-         """
-      case t if t =:= weakTypeOf[Map[String, Int]] =>
-        q""" override def fetch(any: Any): Option[$tpe] = any match {
-              case v: java.util.HashMap[String, Any] => scala.util.Try(v.view.map{
-                case (k, v) => k -> v.toString.toInt
-              }.toMap).toOption
-              case _ => None
-            }
-         """
-      case t if t =:= weakTypeOf[Map[String, Long]] =>
-        q""" override def fetch(any: Any): Option[$tpe] = any match {
-              case v: java.util.HashMap[String, Long] => scala.util.Try(v.toMap).toOption
-              case _ => None
-            }
-         """
-      case t if t =:= weakTypeOf[Map[String, Float]] =>
-        q""" override def fetch(any: Any): Option[$tpe] = any match {
-              case v: java.util.HashMap[String, Any] => scala.util.Try(v.view.map{
-                case (k, v) => k -> v.toString.toFloat
-              }.toMap).toOption
-              case _ => None
-            }
-         """
-      case t if t =:= weakTypeOf[Map[String, Double]] =>
-        q""" override def fetch(any: Any): Option[$tpe] = any match {
-              case v: java.util.HashMap[String, Any] => scala.util.Try(v.view.map{
-                case (k, v) => k -> v.toString.toDouble
-              }.toMap).toOption
-              case _ => None
-            }
-         """
+      case t if t =:= weakTypeOf[Byte] => q"""override def fetch(any: Any): Option[$tpe] = any match {
+       case v: java.lang.Long => Option(v.toByte)
+       case _ => None
+     }"""
+      case t if t =:= weakTypeOf[List[String]] => typedList(weakTypeOf[String])
+      case t if t =:= weakTypeOf[List[Int]] => typedList(weakTypeOf[Int])
+      case t if t =:= weakTypeOf[List[Long]] => typedList(weakTypeOf[Long])
+      case t if t =:= weakTypeOf[List[Float]] => typedList(weakTypeOf[Float])
+      case t if t =:= weakTypeOf[List[Double]] => typedList(weakTypeOf[Double])
+      case t if t =:= weakTypeOf[List[Boolean]] => typedList(weakTypeOf[Boolean])
+      case t if t =:= weakTypeOf[Array[String]] => typedArray(weakTypeOf[String])
+      case t if t =:= weakTypeOf[Array[Int]] => streamedArray(weakTypeOf[Long], q"_.toInt")
+      case t if t =:= weakTypeOf[Array[Long]] => typedArray(weakTypeOf[Long])
+      case t if t =:= weakTypeOf[Array[Float]] => streamedArray(weakTypeOf[Double], q"_.toFloat")
+      case t if t =:= weakTypeOf[Array[Double]] => typedArray(weakTypeOf[Double])
+      case t if t =:= weakTypeOf[Array[Boolean]] => typedArray(weakTypeOf[Boolean])
+      case t if t =:= weakTypeOf[Map[Int, String]] => typedMap(weakTypeOf[Int], weakTypeOf[String])
+      case t if t =:= weakTypeOf[Map[String, String]] => typedMap(weakTypeOf[String], weakTypeOf[String])
+      case t if t =:= weakTypeOf[Map[String, Int]] => typedMap(weakTypeOf[String], weakTypeOf[Int])
+      case t if t =:= weakTypeOf[Map[String, Long]] => typedMap(weakTypeOf[String], weakTypeOf[Long])
+      case t if t =:= weakTypeOf[Map[String, Float]] => typedMap(weakTypeOf[String], weakTypeOf[Float])
+      case t if t =:= weakTypeOf[Map[String, Double]] => typedMap(weakTypeOf[String], weakTypeOf[Double])
       case t if t =:= weakTypeOf[Map[String, List[Int]]] => mp(q"""toKVmap[String, List[Int]](any, coll)(_.toString, toLs(_)(_.toInt))""")
       case t if t =:= weakTypeOf[Map[String, List[String]]] => mp(q"""toKVmap[String, List[String]](any, coll)(_.toString, toLs(_))""")
-      case t if t =:= weakTypeOf[Map[String, Any]] =>
-        q""" override def fetch(any: Any): Option[$tpe] = any match {
-              case v: java.util.HashMap[String, Any] => scala.util.Try(v.asScala.toMap).toOption
-              case _ => None
-            }
-         """
+      case t if t =:= weakTypeOf[Map[String, Any]] => typedMap(weakTypeOf[String], weakTypeOf[Any])
       case t if tupleArity(t) != 0 =>
         val tplArty = tupleArity(t)
         if (tplArty > 0 && tplArty < 23) tupleFetch(t.typeArgs.map(_.toString)) else q"""None"""
@@ -410,12 +358,10 @@ object BinWrapper {
       import scala.collection.immutable.ListMap
       import ru.tinkoff.aerospikemacro.cast.Caster._
       import ru.tinkoff.aerospikemacro.converters._
+      import com.aerospike.client.Value
+      import scala.util.Try
 
       new BinWrapper[$tpe] {
-        override def apply(one: $one): Bin = if (one._1.length > 14) throwE("Current limit for bean name is 14 characters") else gen(one)
-        override def apply(many: $multi): List[Bin] = many.asOne.view.map(apply).toList
-        override def apply(one: $singleton): Bin = apply((one.name, one.value))
-        override def apply(many: $many): List[Bin] = many.view.flatMap(one => scala.util.Try(apply(one)).toOption).toList
         override def apply(r: Record): $out = {
            val outValue: Map[String, Option[$tpe]] = {
            val jMap = r.bins.view collect {

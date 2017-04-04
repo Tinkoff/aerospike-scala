@@ -19,7 +19,7 @@ package ru.tinkoff.aerospikemacro.converters
 import com.aerospike.client.Value._
 import com.aerospike.client.{Key, Value}
 import com.typesafe.config.{Config, ConfigFactory}
-import ru.tinkoff.aerospikemacro.domain.DBCredentials
+import ru.tinkoff.aerospikemacro.domain.{DBCredentials, WrapperException}
 import ru.tinkoff.aerospikescala.domain.ByteSegment
 
 import scala.collection.JavaConversions._
@@ -37,29 +37,17 @@ trait KeyWrapper[KT] {
   val dbName: String = ""
   val tableName: String = ""
 
-  def apply(k: KT): Key
+  def apply(k: KT): Key = new Key(dbName, tableName, toValue(k))
 
-  def toValue(v: KT): Value = v match {
-    case ByteSegment(bytes, offset, length) => new ByteSegmentValue(bytes, offset, length)
-    case b: Int => new IntegerValue(b)
-    case b: Long => new LongValue(b)
-    case b: String => new StringValue(b)
-    case b: Boolean => new BooleanValue(b)
-    case b: Float => new FloatValue(b)
-    case b: Double => new DoubleValue(b)
-    case b: Array[Byte] => new BytesValue(b)
-    case s: scala.collection.immutable.Seq[_] => new ListValue(s)
-    case m: Map[_, _] => new MapValue(m)
-    case other => Try(Value.get(other)) match {
-      case Failure(th) => throw new IllegalArgumentException(
-        s"You need to write your own toValue(v: ${other.getClass}): Value function in KeyWrapper implicit")
-      case Success(s) => s
-    }
+  def toValue(v: KT): Value = Value.get(v) match {
+    case n: NullValue => throw new WrapperException { val msg = "You need to write your own toValue function in KeyWrapper" }
+    case other => other
   }
 }
 
 
 object KeyWrapper {
+  import Utils._
 
   implicit def materializeK[T](implicit dbc: DBCredentials): KeyWrapper[T] = macro implK[T]
 
@@ -69,6 +57,13 @@ object KeyWrapper {
 
     val db = reify(dbc.splice.namespace)
     val tableName = reify(dbc.splice.setname)
+    val tpeName = q"${tpe.typeSymbol.fullName}"
+
+    val err =
+      q"""throw new IllegalArgumentException(
+         "You need to write your own toValue function in KeyWrapper implicit for type " + $tpeName) """
+
+    val toDBVlue = pickValue(c)
 
     c.Expr[KeyWrapper[T]] {
       q"""
@@ -82,7 +77,7 @@ object KeyWrapper {
       new KeyWrapper[$tpe] {
         override val dbName = $db
         override val tableName = $tableName
-        def apply(k: $tpe): Key = new Key(dbName, tableName, toValue(k))
+        override def toValue(v: $tpe): Value = $toDBVlue
       }
      """
     }

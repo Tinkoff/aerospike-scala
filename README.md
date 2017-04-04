@@ -14,6 +14,10 @@ you need to create com.aerospike.client.async.AsyncClient to pass it into `ru.ti
 Example for that object creation you can find in `ru.tinkoff.aerospikeexamples.example.AClient` (```sh "ru.tinkoff" % "aerospike-scala-example"```). 
 Or just follow the `quickstart` instructions.
 
+
+#Protobuf
+Serialization is here! [Check it out!](./cookbook/protobuf/ProtoBinWrapper.md)
+
 # Quickstart
 
 Add this settings to application.conf file and specify your own host, port, namespace and setName:

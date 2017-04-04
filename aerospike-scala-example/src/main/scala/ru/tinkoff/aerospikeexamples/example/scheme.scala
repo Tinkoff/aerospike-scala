@@ -23,7 +23,9 @@ import ru.tinkoff.aerospike.dsl.{CallKB, SpikeImpl}
 import ru.tinkoff.aerospikemacro.converters.{BinWrapper, KeyWrapper}
 import ru.tinkoff.aerospikescala.domain.{ByteSegment, SingleBin}
 import shapeless._
-import java.util.ArrayList
+import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
+import com.aerospike.client.Value
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
@@ -50,10 +52,13 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
   To get your Sample value properly you need to write fetch() function as it is shown below
   */
   implicit val sampleWrap = new BinWrapper[Sample] {
-    override def fetch(any: Any): Option[Sample] = any match {
-      case m: java.util.HashMap[Any, Any] => scala.util.Try(Sample(m("name").toString, m("i").toString.toInt)).toOption
-      case _ => None
-    }
+    override def fetch(any: Any): Option[Sample] = scala.util.Try {
+      Value.getFromRecordObject(any) match {
+        case m: MapValue => m.getObject match {
+          case ms: java.util.Map[String@unchecked, Any@unchecked] => Sample(ms("name").toString, ms("i").toString.toInt)
+        }
+      }
+    }.toOption
   }
 
   /* This is custom wrapper for Bin of type Map[Sample, String]
@@ -70,13 +75,16 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
     override def toValue(v: Map[Sample, String]): MapValue =
       new MapValue(v.map { case (sample, value) => sample.toString -> value })
 
-    override def fetch(any: Any): Option[Map[Sample, String]] = any match {
-      case m: java.util.HashMap[Any, String] => scala.util.Try(m.view.map {
-        case (tr, v) if tr.toString.matches("Sample\\((\\w+)\\,(\\d+)\\)") =>
-          tr.toString match {
-            case trRex(n, i) => Sample(n, i.toInt) -> v
-          }
-      }.toMap).toOption
+    override def fetch(any: Any): Option[Map[Sample, String]] = Value.getFromRecordObject(any) match {
+      case m: MapValue => m.getObject match {
+        case ms: java.util.Map[Any@unchecked, String@unchecked] => scala.util.Try(ms.asScala.map {
+          case (tr, v) if tr.toString.matches("Sample\\((\\w+)\\,(\\d+)\\)") =>
+            tr.toString match {
+              case trRex(n, i) => Sample(n, i.toInt) -> v
+            }
+        }.toMap).toOption
+        case _ => None
+      }
       case _ => None
     }
   }
@@ -139,6 +147,8 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
 
   def putListDouble(k: String, a: SingleBin[List[Double]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, List[Double]](CallKB.Put, k, a)
 
+  def putListBoolean(k: String, a: SingleBin[List[Boolean]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, List[Boolean]](CallKB.Put, k, a)
+
   def putSample(k: String, a: SingleBin[Sample])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Sample](CallKB.Put, k, a)
 
   def putTuple(k: String, a: SingleBin[(String, Long, Double)])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, (String, Long, Double)](CallKB.Put, k, a)
@@ -146,6 +156,8 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
   def putSeqArrayBuffer(k: String, a: SingleBin[Seq[ArrayBuffer[Double]]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Seq[ArrayBuffer[Double]]](CallKB.Put, k, a)
 
   def putArrayByte(k: String, a: SingleBin[Array[Byte]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Array[Byte]](CallKB.Put, k, a)
+
+  def putArrayBoolean(k: String, a: SingleBin[Array[Boolean]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Array[Boolean]](CallKB.Put, k, a)
 
   def putArrayString(k: String, a: SingleBin[Array[String]])(implicit e: ExecutionContext): Future[Unit] = spike.callKB[String, Array[String]](CallKB.Put, k, a)
 
@@ -217,6 +229,9 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
   def getListDouble(k: String)(implicit e: ExecutionContext): Future[List[Double]] = spike.getByKey[String, List[Double]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
+  def getListBoolean(k: String)(implicit e: ExecutionContext): Future[List[Boolean]] = spike.getByKey[String, List[Boolean]](k).map(o =>
+    o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
+
   def getSeqArrayBuffer(k: String)(implicit e: ExecutionContext): Future[Seq[ArrayBuffer[Double]]] = spike.getByKey[String, Seq[ArrayBuffer[Double]]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
@@ -236,6 +251,9 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
   def getArrayDouble(k: String)(implicit e: ExecutionContext): Future[Array[Double]] = spike.getByKey[String, Array[Double]](k).map(o =>
+    o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
+
+  def getArrayBoolean(k: String)(implicit e: ExecutionContext): Future[Array[Boolean]] = spike.getByKey[String, Array[Boolean]](k).map(o =>
     o.flatMap(e => e._1.values.filter(_.nonEmpty).head).getOrElse(throw new Exception("No data found")))
 
   def getByteSegment(k: String)(implicit e: ExecutionContext): Future[ByteSegment] = spike.getByKey[String, ByteSegment](k).map(o =>
