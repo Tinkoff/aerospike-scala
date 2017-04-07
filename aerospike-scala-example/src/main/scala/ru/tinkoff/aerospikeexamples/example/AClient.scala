@@ -18,38 +18,39 @@ package ru.tinkoff.aerospikeexamples.example
 
 import com.aerospike.client.Host
 import com.aerospike.client.async.{AsyncClient, AsyncClientPolicy}
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import ru.tinkoff.aerospike.dsl.SpikeImpl
 import ru.tinkoff.aerospikemacro.domain.DBCredentials
 
 import scala.concurrent.ExecutionContext
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 /**
-  * @author MarinaSigaeva 
+  * @author MarinaSigaeva
   * @since 20.10.16
   */
 object AClient {
 
-  val config = ConfigFactory.load()
-  val hosts = scala.util.Try(List(config.getString("ru-tinkoff-aerospike-dsl.example-host"))).toOption
+  val config: Config = ConfigFactory.load()
+  val hosts: List[String] = Try(List(config.getString("ru-tinkoff-aerospike-dsl.example-host")))
     .getOrElse(throw new Exception("Add host for aerospike in application.conf file"))
-  val port = scala.util.Try(config.getInt("ru-tinkoff-aerospike-dsl.example-port")).toOption
+  val port: Int = Try(config.getInt("ru-tinkoff-aerospike-dsl.example-port"))
     .getOrElse(throw new Exception("Add host for aerospike in application.conf file"))
 
-  val namespace = scala.util.Try(config.getString("ru-tinkoff-aerospike-dsl.keyWrapper-namespace")).toOption
+  val namespace: String = Try(config.getString("ru-tinkoff-aerospike-dsl.keyWrapper-namespace"))
     .getOrElse(throw new Exception("Add namespace for aerospike in application.conf file"))
-  val setName = scala.util.Try(config.getString("ru-tinkoff-aerospike-dsl.keyWrapper-setName")).toOption
+  val setName: String = Try(config.getString("ru-tinkoff-aerospike-dsl.keyWrapper-setName"))
     .getOrElse(throw new Exception("Add setName for aerospike in application.conf file"))
 
   def dbc = DBCredentials(namespace, setName)
 
-  def client = create(hosts)
+  def client: AsyncClient = create(hosts)
 
-  def create(hs: List[String]): AsyncClient = scala.util.Try(new AsyncClient(new AsyncClientPolicy, hs.map(new Host(_, port)): _*)) match {
-    case Success(c) => c
-    case Failure(th) => throw th
-  }
+  def create(hs: List[String]): AsyncClient =
+    Try(new AsyncClient(new AsyncClientPolicy, hs.map(new Host(_, port)): _*)) match {
+      case Success(c)  => c
+      case Failure(th) => throw th
+    }
 
   def spikeImpl(implicit ex: ExecutionContext) = new SpikeImpl(client)(ex)
 }

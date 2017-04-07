@@ -152,7 +152,7 @@ import com.aerospike.client.listener.RecordListener
 import ru.tinkoff.aerospike.dsl.SpikeImpl
 import ru.tinkoff.aerospikeexamples.example.AClient
 import com.aerospike.client.{AerospikeException, Key, Record}
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import ru.tinkoff.aerospikemacro.converters._
 import ru.tinkoff.aerospikemacro.converters.KeyWrapper.create
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -165,7 +165,7 @@ val stKeyWrapper = create[String]("ns", "setName")
 val record1 = new Record(m1, 100, 12)
 
 case class ReadHandler(key: Key = new Key("kName", "ns", 1),
-                       record: Record = new Record(Map("k" -> new StringValue("v")), 100, 12)) extends RecordListener {
+                       record: Record = new Record(Map[String, AnyRef]("k" -> new StringValue("v")).asJava, 100, 12)) extends RecordListener {
   def onSuccess(key: Key, record: Record): Unit = {}
   def onFailure(e: AerospikeException): Unit = e.printStackTrace()
 }

@@ -18,33 +18,30 @@ package ru.tinkoff.aerospikemacro.converters
 
 import com.aerospike.client.Value._
 import com.aerospike.client.{Key, Value}
-import com.typesafe.config.{Config, ConfigFactory}
 import ru.tinkoff.aerospikemacro.domain.{DBCredentials, WrapperException}
-import ru.tinkoff.aerospikescala.domain.ByteSegment
 
-import scala.collection.JavaConversions._
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox.Context
-import scala.util.{Failure, Success, Try}
-
 
 /**
-  * @author MarinaSigaeva 
+  * @author MarinaSigaeva
   * @since 19.09.16
   */
 trait KeyWrapper[KT] {
 
-  val dbName: String = ""
+  val dbName: String    = ""
   val tableName: String = ""
 
   def apply(k: KT): Key = new Key(dbName, tableName, toValue(k))
 
   def toValue(v: KT): Value = Value.get(v) match {
-    case n: NullValue => throw new WrapperException { val msg = "You need to write your own toValue function in KeyWrapper" }
+    case _: NullValue =>
+      throw new WrapperException {
+        val msg = "You need to write your own toValue function in KeyWrapper"
+      }
     case other => other
   }
 }
-
 
 object KeyWrapper {
   import Utils._
@@ -55,20 +52,14 @@ object KeyWrapper {
     import c.universe._
     val tpe = weakTypeOf[T]
 
-    val db = reify(dbc.splice.namespace)
+    val db        = reify(dbc.splice.namespace)
     val tableName = reify(dbc.splice.setname)
-    val tpeName = q"${tpe.typeSymbol.fullName}"
 
-    val err =
-      q"""throw new IllegalArgumentException(
-         "You need to write your own toValue function in KeyWrapper implicit for type " + $tpeName) """
-
-    val toDBVlue = pickValue(c)
+    val toDBValue = pickValue(c)
 
     c.Expr[KeyWrapper[T]] {
       q"""
       import com.aerospike.client.{Key, Value}
-      import collection.JavaConversions._
       import com.aerospike.client.Value._
       import scala.collection.immutable.Seq
       import ru.tinkoff.aerospikescala.domain.ByteSegment
@@ -77,7 +68,7 @@ object KeyWrapper {
       new KeyWrapper[$tpe] {
         override val dbName = $db
         override val tableName = $tableName
-        override def toValue(v: $tpe): Value = $toDBVlue
+        override def toValue(v: $tpe): Value = $toDBValue
       }
      """
     }

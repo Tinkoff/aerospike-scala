@@ -10,7 +10,7 @@ import ru.tinkoff.aerospikemacro.converters.{BinWrapper, KeyWrapper}
 import ru.tinkoff.aerospikescala.domain.SingleBin
 import shapeless._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.experimental.macros
 
@@ -22,7 +22,7 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
 
   implicit val sampleWrap = new BinWrapper[Sample] {
     override def fetch(any: Any): Option[Sample] = any match {
-      case m: java.util.HashMap[Any, Any] => scala.util.Try(Sample(m("name").toString, m("i").toString.toInt)).toOption
+      case m: java.util.HashMap[Any, Any] => scala.util.Try(Sample(m.asScala("name").toString, m.asScala("i").toString.toInt)).toOption
       case _ => None
     }
   }
@@ -32,10 +32,10 @@ case class SampleScheme(spike: SpikeImpl) extends Scheme[String] {
     val trRex = rex.r
 
     override def toValue(v: Map[Sample, String]): MapValue =
-      new MapValue(v.map { case (sample, value) => sample.toString -> value })
+      new MapValue(v.map { case (sample, value) => sample.toString -> value }.asJava)
 
     override def fetch(any: Any): Option[Map[Sample, String]] = any match {
-      case m: java.util.HashMap[Any, String] => scala.util.Try(m.view.map {
+      case m: java.util.HashMap[Any, String] => scala.util.Try(m.asScala.view.map {
         case (tr, v) if tr.toString.matches("Sample\\((\\w+)\\,(\\d+)\\)") =>
           tr.toString match {
             case trRex(n, i) => Sample(n, i.toInt) -> v
