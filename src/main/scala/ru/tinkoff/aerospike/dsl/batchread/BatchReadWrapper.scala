@@ -28,6 +28,7 @@ import scala.language.experimental.macros
   * @author MarinaSigaeva 
   * @since 21.09.16
   */
+/*
 trait BatchReadWrapper {
   val keyValue: Any
   val binNames: Array[String]
@@ -36,3 +37,4 @@ trait BatchReadWrapper {
   def applyO[S <: Any](k: S)(implicit kW: KeyWrapper[S]): BatchRead = new BatchRead(kW(k), binNames)
   def apply = applyO(keyValue)
 }
+*/

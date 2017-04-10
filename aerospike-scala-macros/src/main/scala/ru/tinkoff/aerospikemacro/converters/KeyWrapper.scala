@@ -18,14 +18,10 @@ package ru.tinkoff.aerospikemacro.converters
 
 import com.aerospike.client.Value._
 import com.aerospike.client.{Key, Value}
-import com.typesafe.config.{Config, ConfigFactory}
 import ru.tinkoff.aerospikemacro.domain.{DBCredentials, WrapperException}
-import ru.tinkoff.aerospikescala.domain.ByteSegment
-
-import scala.collection.JavaConversions._
 import scala.language.experimental.macros
-import scala.reflect.macros.blackbox.Context
-import scala.util.{Failure, Success, Try}
+import scala.reflect.macros.blackbox
+import Utils._
 
 
 /**
@@ -47,11 +43,10 @@ trait KeyWrapper[KT] {
 
 
 object KeyWrapper {
-  import Utils._
 
   implicit def materializeK[T](implicit dbc: DBCredentials): KeyWrapper[T] = macro implK[T]
 
-  def implK[T: c.WeakTypeTag](c: Context)(dbc: c.Expr[DBCredentials]): c.Expr[KeyWrapper[T]] = {
+  def implK[T: c.WeakTypeTag](c: blackbox.Context)(dbc: c.Expr[DBCredentials]): c.Expr[KeyWrapper[T]] = {
     import c.universe._
     val tpe = weakTypeOf[T]
 
@@ -59,11 +54,7 @@ object KeyWrapper {
     val tableName = reify(dbc.splice.setname)
     val tpeName = q"${tpe.typeSymbol.fullName}"
 
-    val err =
-      q"""throw new IllegalArgumentException(
-         "You need to write your own toValue function in KeyWrapper implicit for type " + $tpeName) """
-
-    val toDBVlue = pickValue(c)
+    val toDBValue = pickValue(c, "KeyWrapper")
 
     c.Expr[KeyWrapper[T]] {
       q"""
@@ -73,11 +64,12 @@ object KeyWrapper {
       import scala.collection.immutable.Seq
       import ru.tinkoff.aerospikescala.domain.ByteSegment
       import scala.util.{Failure, Success, Try}
+      import ru.tinkoff.aerospikemacro.converters.Utils.defaultToValue
 
       new KeyWrapper[$tpe] {
         override val dbName = $db
         override val tableName = $tableName
-        override def toValue(v: $tpe): Value = $toDBVlue
+        override def toValue(v: $tpe): Value = $toDBValue
       }
      """
     }
