@@ -29,16 +29,22 @@ import ru.tinkoff.aerospikeexamples.designers.designers.Designers
 import ProtoBinWrapper._
 
 /**
-  * @author MarinaSigaeva 
+  * @author MarinaSigaeva
   * @since 23.03.17
   */
 object ProtoSample extends App {
 
-  val db = new ProtoScheme
+  val db           = new ProtoScheme
   implicit val dbc = AClient.dbc
 
   val one = Designer("Karl Lagerfeld", 83)
-  val many = Designers(List(one, Designer("Diane von Furstenberg", 70), Designer("Donatella Versace", 61)))
+  val many = Designers(
+    List(
+      one,
+      Designer("Diane von Furstenberg", 70),
+      Designer("Donatella Versace", 61)
+    )
+  )
 
   /* '''aql> select * from test.test'''
    *  [
@@ -54,7 +60,7 @@ object ProtoSample extends App {
   db.put("protoDesigner", SingleBin("pDesigner", one))
   db.put("protoDesigners", SingleBin("pDesigners", many))
 
-  val oneDesigner = Await.result(db.get[Designer]("protoDesigner"), Inf)
+  val oneDesigner   = Await.result(db.get[Designer]("protoDesigner"), Inf)
   val manyDesigners = Await.result(db.get[Designers]("protoDesigners"), Inf)
 
   /*   --------------------
@@ -76,7 +82,8 @@ object ProtoSample extends App {
    *   }
    *   ))
    */
-
+  assert(oneDesigner.values.exists(_.contains(one)))
+  assert(manyDesigners.values.exists(_.contains(many)))
   show(oneDesigner)
   show(manyDesigners)
 }

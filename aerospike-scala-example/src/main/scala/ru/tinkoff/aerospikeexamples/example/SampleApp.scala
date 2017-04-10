@@ -24,9 +24,8 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration.Inf
 import scala.language.experimental.macros
 
-
 /**
-  * @author MarinaSigaeva 
+  * @author MarinaSigaeva
   * @since 20.10.16
   */
 object SampleApp extends App {
@@ -37,13 +36,18 @@ object SampleApp extends App {
 
   val myObj = SampleScheme(spike)
 
-  myObj.putMapSimpleString("mapSimpleString", SingleBin("TmapBinName", Map(Sample("t1", 3) -> "v1", Sample("t2", 2) -> "v2", Sample("t3", 1) -> "v3")))
+  myObj.putMapSimpleString(
+    "mapSimpleString",
+    SingleBin("TmapBinName", Map(Sample("t1", 3) -> "v1", Sample("t2", 2) -> "v2", Sample("t3", 1) -> "v3"))
+  )
+  // @formatter:off
   myObj.putMap("mapKey", SingleBin("mapBinName", Map("a" -> "v1", "b" -> "v2", "c" -> "v3")))
   myObj.putMapIS("mapIntString", SingleBin("mapISName", Map(9 -> "v1", 2 -> "v2", 3 -> "v3")))
   myObj.putMapSI("mapStringInt", SingleBin("mapSIName", Map("a" -> 33, "b" -> 44, "c" -> 99)))
   myObj.putMapLong("mapLong", SingleBin("mapLongName", Map("a" -> 30030L, "b" -> 40004L, "c" -> 90009L)))
   myObj.putMapFloat("mapFloat", SingleBin("mapFloatName", Map("a" -> 30.3F, "b" -> 400.04F, "c" -> 9.01F)))
   myObj.putMapDouble("mapDouble", SingleBin("mapDoubleName", Map("a" -> 300.30, "b" -> 4000.4, "c" -> 90.09)))
+  // @formatter:on
 
   myObj.putString("stringKey", SingleBin("stringBinName", "strBinValue"))
   myObj.putInt("intBinKey", SingleBin("intBinName", 202))
@@ -117,7 +121,7 @@ object SampleApp extends App {
   val hlist2 = Await.result(myObj.getHList2("hListKey2"), Inf)
   Printer.printNameValue(hlist2)
 
-/*  val byteSegment = Await.result(myObj.getArrayByte("byteSegmKey"), Inf)
+  /*  val byteSegment = Await.result(myObj.getArrayByte("byteSegmKey"), Inf)
   Printer.printNameValue(byteSegment)*/
 
   /*  val tuple3 = Await.result(myObj.getTuple("tuple3Key"), Inf)

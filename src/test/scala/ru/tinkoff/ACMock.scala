@@ -23,20 +23,19 @@ import com.aerospike.client.policy.{InfoPolicy, _}
 import com.aerospike.client.query.{RecordSet, ResultSet, Statement}
 import com.aerospike.client.task.{ExecuteTask, RegisterTask}
 import com.github.danymarialee.mock.MockAerospike
-import scala.collection.JavaConversions._
-
+import scala.collection.JavaConverters._
 
 /**
   * Created by danylee on 30/11/16.
   */
 object ACMock {
 
-  val m1: java.util.Map[String, AnyRef] = Map("operateBinName" -> new StringValue("operate"))
-  val record1 = new Record(m1, 100, 12)
-  val s1 = new StringValue("execute")
-  val zMock = new MockAerospike()
-  val exTask = zMock.et1
-  val regTask = zMock.rt1
+  val m1: java.util.Map[String, AnyRef] = Map[String, AnyRef]("operateBinName" -> new StringValue("operate")).asJava
+  val record1                           = new Record(m1, 100, 12)
+  val s1                                = new StringValue("execute")
+  val zMock                             = new MockAerospike()
+  val exTask: ExecuteTask               = zMock.et1
+  val regTask: RegisterTask             = zMock.rt1
 
   def spikeMock = new MockAerospike {
 
@@ -58,12 +57,30 @@ object ACMock {
 
     override def touch(policy: WritePolicy, key: Key): Unit = {}
 
-    override def execute(policy: WritePolicy, listener: ExecuteListener, key: Key,
-                         packageName: String, functionName: String, functionArgs: Value*): Unit = {}
+    override def execute(
+        policy: WritePolicy,
+        listener: ExecuteListener,
+        key: Key,
+        packageName: String,
+        functionName: String,
+        functionArgs: Value*
+    ): Unit = {}
 
-    override def execute(policy: WritePolicy, key: Key, packageName: String, functionName: String, args: Value*): Object = s1
+    override def execute(
+        policy: WritePolicy,
+        key: Key,
+        packageName: String,
+        functionName: String,
+        args: Value*
+    ): Object = s1
 
-    override def execute(policy: WritePolicy, statement: Statement, packageName: String, functionName: String, functionArgs: Value*): ExecuteTask = exTask
+    override def execute(
+        policy: WritePolicy,
+        statement: Statement,
+        packageName: String,
+        functionName: String,
+        functionArgs: Value*
+    ): ExecuteTask = exTask
 
     override def exists(policy: Policy, listener: ExistsListener, key: Key): Unit = {}
 
@@ -73,6 +90,7 @@ object ACMock {
 
     override def exists(policy: BatchPolicy, listener: ExistsSequenceListener, keys: Array[Key]): Unit = {}
 
+    //noinspection NameBooleanParameters
     override def exists(policy: BatchPolicy, keys: Array[Key]): Array[Boolean] = Array(true)
 
     override def query(policy: QueryPolicy, listener: RecordSequenceListener, statement: Statement): Unit = {}
@@ -80,18 +98,40 @@ object ACMock {
     override def query(policy: QueryPolicy, statement: Statement): RecordSet = null
 
     //= new RecordSet(queryExecutor, 1)
-    override def queryAggregate(policy: QueryPolicy, statement: Statement, packageName: String, functionName: String, functionArgs: Value*): ResultSet = null
+    override def queryAggregate(
+        policy: QueryPolicy,
+        statement: Statement,
+        packageName: String,
+        functionName: String,
+        functionArgs: Value*
+    ): ResultSet = null
 
     override def queryAggregate(policy: QueryPolicy, statement: Statement): ResultSet = null
 
-    override def scanAll(policy: ScanPolicy, listener: RecordSequenceListener, namespace: String, setName: String, binNames: String*): Unit = {}
+    override def scanAll(
+        policy: ScanPolicy,
+        listener: RecordSequenceListener,
+        namespace: String,
+        setName: String,
+        binNames: String*
+    ): Unit = {}
 
-    override def scanAll(policy: ScanPolicy, namespace: String, setName: String, callback: ScanCallback, binNames: String*): Unit = {}
+    override def scanAll(
+        policy: ScanPolicy,
+        namespace: String,
+        setName: String,
+        callback: ScanCallback,
+        binNames: String*
+    ): Unit = {}
 
     override def removeUdf(policy: InfoPolicy, serverPath: String): Unit = {}
 
-    override def registerUdfString(policy: Policy, code: String, serverPath: String, language: Language): RegisterTask = regTask
-
+    override def registerUdfString(
+        policy: Policy,
+        code: String,
+        serverPath: String,
+        language: Language
+    ): RegisterTask = regTask
 
   }
 }

@@ -24,9 +24,8 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration.Inf
 import scala.language.experimental.macros
 
-
 /**
-  * @author MarinaSigaeva 
+  * @author MarinaSigaeva
   * @since 26.10.16
   */
 object KBSampleApp extends App {
@@ -34,16 +33,20 @@ object KBSampleApp extends App {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   val client = AClient.client
-  val spike = new SpikeImpl(client)
+  val spike  = new SpikeImpl(client)
 
-  val myObj = SampleKBScheme(spike)
+  val myObj = KBSampleScheme(spike)
 
-  myObj.putOne("oneKey", SingleBin("oneName", 2))
-  myObj.putMany("manyKey", MBin(Map("aName" -> 2, "bName" -> 13)))
+  private val oneValue   = 2
+  private val manyValues = Map("aName" -> 2, "bName" -> 13)
+  myObj.putOne("oneKey", SingleBin("oneName", oneValue))
+  myObj.putMany("manyKey", MBin(manyValues))
 
   val one = Await.result(myObj.getOne("oneKey"), Inf)
+  assert(one._2.contains(oneValue))
   Printer.printNameValue(one)
 
   val many = Await.result(myObj.getMany("manyKey"), Inf)
+  assert(many == manyValues.mapValues(Some.apply))
   Printer.printNameValue(many)
 }
