@@ -3,10 +3,10 @@
 
 To start working with Aerospike using this DSL you have to add dependency sbt:
 ```sh
-"ru.tinkoff" % "aerospike-scala" % "1.1.14",
+"ru.tinkoff" %% "aerospike-scala" % "1.1.14",
 "com.aerospike" % "aerospike-client" % "3.3.1", // in case you don't have it
-"ru.tinkoff" % "aerospike-scala-example" % "1.1.14" // usage examples
-"ru.tinkoff" % "aerospike-scala-proto" % "1.1.14" // protobuff serialization support
+"ru.tinkoff" %% "aerospike-scala-example" % "1.1.14" // usage examples
+"ru.tinkoff" %% "aerospike-scala-proto" % "1.1.14" // protobuff serialization support
 `````
 Since I'm using Aerospike Java Client (version 3.3.1, recomended on www.aerospike.com),
 you need to create com.aerospike.client.async.AsyncClient to pass it into `ru.tinkoff.aerospike.dsl.SpikeImpl` class.
