@@ -21,7 +21,7 @@ import com.aerospike.client.async._
 import com.aerospike.client.listener._
 import com.aerospike.client.policy._
 import com.aerospike.client.query.Statement
-import ru.tinkoff.aerospike.dsl.batchread.BatchReadWrapper
+//import ru.tinkoff.aerospike.dsl.batchread.BatchReadWrapper
 import ru.tinkoff.aerospikemacro.converters.{BinWrapper, KeyWrapper}
 import ru.tinkoff.aerospike.dsl.errors.AerospikeDSLError
 import ru.tinkoff.aerospikescala.domain.{ABin, MBin, SingleBin}
@@ -340,6 +340,9 @@ class SpikeImpl(spikeClient: IAsyncClient)(implicit val ec: ExecutionContext)
     }
   }
 
+/*  def getByKeysWithBatchListener[L](kws: List[BatchReadWrapper], listener: Option[L] = None)(implicit optBP: Option[BatchPolicy] = None): Future[Unit] = {
+    val policy = optBP.getOrElse(new BatchPolicy)
+    val records: java.util.List[BatchRead] = kws.view.map(e => e.apply).toList
   def getByKeysWithBatchListener[L](kws: List[BatchReadWrapper], listener: Option[L] = None)(
       implicit optBP: Option[BatchPolicy] = None
   ): Future[Unit] = {
@@ -352,6 +355,6 @@ class SpikeImpl(spikeClient: IAsyncClient)(implicit val ec: ExecutionContext)
       case None                            => get(policy, records)
       case _                               => throw AerospikeDSLError(s"Unsupported listener type $listener")
     }
-  }
+  }*/
 
 }

@@ -16,8 +16,6 @@
 
 package ru.tinkoff.aerospikemacro.cast
 
-import shapeless.syntax.std.tuple._
-
 /**
   * @author MarinaSigaeva
   * @since 27.10.16
@@ -43,25 +41,44 @@ object Caster {
   def cast(elem: Any, desc: String): Any = {
     elem match {
       case long: java.lang.Long if desc == "Boolean" => long == 1
-      case long: java.lang.Long if desc == "Int"     => long.toInt
-      case long: java.lang.Long if desc == "Short"   => long.toShort
-      case long: java.lang.Long if desc == "Byte"    => long.toByte
-      case dbl: java.lang.Double if desc == "Float"  => dbl.toFloat
+      case long: java.lang.Long if desc == "Int" => long.toInt
+      case long: java.lang.Long if desc == "Short" => long.toShort
+      case long: java.lang.Long if desc == "Byte" => long.toByte
+      case dbl: java.lang.Double if desc == "Float" => dbl.toFloat
       case str: java.lang.String if desc == "Char" =>
         str.toString.toCharArray.headOption
       case _ => elem
     }
   }
 
-  def castTuple(elems: Map[Any, Any], types: List[String]): Option[TP] = {
-    val casted = types.indices.map(i => cast(elems(i.toString), types(i))).toList
-    casted.length match {
-      case l if l > 0 && l < 23 => scala.util.Try(buildTuple(casted)).toOption
-      case _                    => None
-    }
-  }
 
-  def buildTuple(elems: List[Any]): TP = {
-    (for (i <- 1 until elems.length) yield Tuple1(elems.head) :+ elems(i)).toList
-  }
 }
+
+object Tuplify {
+
+  val m = Map(
+    2 -> { ls: List[Any] => (ls.head, ls(1)) },
+    3 -> { ls: List[Any] => (ls.head, ls(1), ls(2)) },
+    4 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3)) },
+    5 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4)) },
+    6 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5)) },
+    7 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6)) },
+    8 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7)) },
+    9 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8)) },
+    10 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8), ls(9)) },
+    11 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8), ls(9), ls(10)) },
+    12 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8), ls(9), ls(10), ls(11)) },
+    13 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8), ls(9), ls(10), ls(11), ls(12)) },
+    14 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8), ls(9), ls(10), ls(11), ls(12), ls(13)) },
+    15 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8), ls(9), ls(10), ls(11), ls(12), ls(13), ls(14)) },
+    16 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8), ls(9), ls(10), ls(11), ls(12), ls(13), ls(14), ls(15)) },
+    17 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8), ls(9), ls(10), ls(11), ls(12), ls(13), ls(14), ls(15), ls(16)) },
+    18 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8), ls(9), ls(10), ls(11), ls(12), ls(13), ls(14), ls(15), ls(16), ls(17)) },
+    19 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8), ls(9), ls(10), ls(11), ls(12), ls(13), ls(14), ls(15), ls(16), ls(17), ls(18)) },
+    20 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8), ls(9), ls(10), ls(11), ls(12), ls(13), ls(14), ls(15), ls(16), ls(17), ls(18), ls(19)) },
+    21 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8), ls(9), ls(10), ls(11), ls(12), ls(13), ls(14), ls(15), ls(16), ls(17), ls(18), ls(19), ls(20)) },
+    22 -> { ls: List[Any] => (ls.head, ls(1), ls(2), ls(3), ls(4), ls(5), ls(6), ls(7), ls(8), ls(9), ls(10), ls(11), ls(12), ls(13), ls(14), ls(15), ls(16), ls(17), ls(18), ls(19), ls(20), ls(21)) }
+  )
+
+}
+

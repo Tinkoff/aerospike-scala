@@ -31,6 +31,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.experimental.macros
 import scala.util.matching.Regex
+import ru.tinkoff.aerospikemacro.cast.Tuplify._
 
 /**
   * @author MarinaSigaeva

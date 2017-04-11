@@ -17,7 +17,7 @@
 package ru.tinkoff.aerospike.dsl
 
 import com.aerospike.client.policy._
-import ru.tinkoff.aerospike.dsl.batchread.BatchReadWrapper
+//import ru.tinkoff.aerospike.dsl.batchread.BatchReadWrapper
 import ru.tinkoff.aerospikemacro.converters.KeyWrapper._
 import ru.tinkoff.aerospikemacro.converters.{BinWrapper, KeyWrapper}
 import ru.tinkoff.aerospikescala.domain.ABin
@@ -80,9 +80,9 @@ trait Spike {
       optBP: Option[BatchPolicy] = None): Future[Unit]
 
   //note, if you will not change namespace, setName parameters in BatchReadWrapper - default values from application.conf will be used
-  def getByKeysWithBatchListener[L](kws: List[BatchReadWrapper],
+/*  def getByKeysWithBatchListener[L](kws: List[BatchReadWrapper],
                                     listener: Option[L] = None)(
-      implicit optBP: Option[BatchPolicy] = None): Future[Unit]
+      implicit optBP: Option[BatchPolicy] = None): Future[Unit]*/
 
   def deleteK[K](k: K)(implicit kC: KeyWrapper[K],
                        pw: Option[WritePolicy] = None,

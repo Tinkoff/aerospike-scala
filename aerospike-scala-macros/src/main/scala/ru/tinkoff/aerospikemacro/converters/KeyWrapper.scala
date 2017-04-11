@@ -21,7 +21,8 @@ import com.aerospike.client.{Key, Value}
 import ru.tinkoff.aerospikemacro.domain.{DBCredentials, WrapperException}
 
 import scala.language.experimental.macros
-import scala.reflect.macros.blackbox.Context
+import scala.reflect.macros.blackbox
+import Utils._
 
 /**
   * @author MarinaSigaeva
@@ -44,18 +45,17 @@ trait KeyWrapper[KT] {
 }
 
 object KeyWrapper {
-  import Utils._
 
   implicit def materializeK[T](implicit dbc: DBCredentials): KeyWrapper[T] = macro implK[T]
 
-  def implK[T: c.WeakTypeTag](c: Context)(dbc: c.Expr[DBCredentials]): c.Expr[KeyWrapper[T]] = {
+  def implK[T: c.WeakTypeTag](c: blackbox.Context)(dbc: c.Expr[DBCredentials]): c.Expr[KeyWrapper[T]] = {
     import c.universe._
     val tpe = weakTypeOf[T]
 
     val db        = reify(dbc.splice.namespace)
     val tableName = reify(dbc.splice.setname)
 
-    val toDBValue = pickValue(c)
+    val toDBValue = pickValue(c, "KeyWrapper")
 
     c.Expr[KeyWrapper[T]] {
       q"""
@@ -64,6 +64,7 @@ object KeyWrapper {
       import scala.collection.immutable.Seq
       import ru.tinkoff.aerospikescala.domain.ByteSegment
       import scala.util.{Failure, Success, Try}
+      import ru.tinkoff.aerospikemacro.converters.Utils.defaultToValue
 
       new KeyWrapper[$tpe] {
         override val dbName = $db
