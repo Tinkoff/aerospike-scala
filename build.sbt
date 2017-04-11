@@ -1,6 +1,5 @@
 import de.heikoseeberger.sbtheader.HeaderPattern
-import sbt.Keys._
-import sbt._
+import Dependencies._
 
 autoScalaLibrary := false
 
@@ -27,18 +26,26 @@ val copyright = headers := Map(
   )
 )
 
-val setts = Seq(organization := "ru.tinkoff",
-  version := "1.1.13",
-  scalaVersion := "2.11.8",
+val setts = Seq(
+  organization := "ru.tinkoff",
+  version := "1.1.14",
+  scalaVersion := Versions.scala,
+  crossScalaVersions := Versions.scalas,
+  // Doge
+  releaseCrossBuild := false,
   scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8"),
   copyright,
-  licenses := Seq(("Apache License, Version 2.0", url("https://www.apache.org/licenses/LICENSE-2.0"))),
+  licenses := Seq(
+    ("Apache License, Version 2.0", url("https://www.apache.org/licenses/LICENSE-2.0"))
+  ),
   homepage := Some(url("http://tinkoff.ru")),
   sonatypeProfileName := "ru.tinkoff",
   pgpReadOnly := false,
   publishMavenStyle := true,
   publishArtifact in Test := false,
-  pomIncludeRepository := { _ => false },
+  pomIncludeRepository := { _ =>
+    false
+  },
   publishTo <<= version { (v: String) =>
     val nexus = "https://oss.sonatype.org/"
     if (v.trim.endsWith("SNAPSHOT"))
@@ -55,55 +62,124 @@ val setts = Seq(organization := "ru.tinkoff",
       </developer>
     </developers>
   },
-  scmInfo := Some(ScmInfo(
-    url("http://github.com/TinkoffCreditSystems"),
-    "scm:git:github.com/TinkoffCreditSystems/aerospike-scala",
-    Some("scm:git:git@github.com:TinkoffCreditSystems/aerospike-scala.git")
-  )),
-  credentials += Credentials("Sonatype Nexus Repository Manager",
-    "oss.sonatype.org",
-    "",
-    ""))
+  scmInfo := Some(
+    ScmInfo(
+      url("http://github.com/TinkoffCreditSystems"),
+      "scm:git:github.com/TinkoffCreditSystems/aerospike-scala",
+      Some("scm:git:git@github.com:TinkoffCreditSystems/aerospike-scala.git")
+    )
+  ),
+  credentials += Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", "", "")
+)
 
 lazy val protoSetting = PB.targets in Compile := Seq(
   scalapb.gen() -> (sourceManaged in Compile).value
 )
 
-val testLibs = Seq(
-  "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.0",
-  "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-  "org.mockito" % "mockito-core" % "2.2.26" % "test",
-  "junit" % "junit" % "4.12",
-  "com.github.danymarialee" %% "aerospike-mock" % "1.0.4"
-)
+lazy val macros =
+  Project(id = "aerospike-scala-macros", base = file("aerospike-scala-macros"), dependencies = Seq(domain))
+    .settings(setts)
+    .settings(libraryDependencies ++= mainLibs(scalaVersion.value))
 
-val mainLib = Seq(
-  "com.aerospike" % "aerospike-client" % "3.3.1",
-  "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.0",
-  "com.chuusai" %% "shapeless" % "2.3.2",
-  "org.scala-lang" % "scala-reflect" % "2.11.8")
+lazy val domain = Project(id = "aerospike-scala-domain", base = file("aerospike-scala-domain"))
+  .settings(setts)
+  .settings(moduleName := "aerospike-scala-domain")
 
-lazy val macros = Project(id = "aerospike-scala-macros",
-  base = file("aerospike-scala-macros"), dependencies = Seq(domain))
-  .settings(setts ++ (libraryDependencies ++= mainLib))
+lazy val protoBin =
+  Project(id = "aerospike-scala-proto", base = file("aerospike-scala-proto"), dependencies = Seq(root))
+    .settings(setts)
+    .settings(protoSetting)
+    .settings(
+      Seq(
+        moduleName := "aerospike-scala-proto",
+        libraryDependencies ++= commonLibs(scalaVersion.value)
+      )
+    )
 
-lazy val domain = Project(id = "aerospike-scala-domain",
-  base = file("aerospike-scala-domain"))
-  .settings(setts ++ (moduleName := "aerospike-scala-domain"))
+lazy val example =
+  Project(id = "aerospike-scala-example", base = file("aerospike-scala-example"), dependencies = Seq(root, protoBin))
+    .settings(setts)
+    .settings(protoSetting)
+    .settings(
+      Seq(
+        moduleName := "aerospike-scala-example",
+        libraryDependencies ++= exampleLibs(scalaVersion.value)
+      )
+    )
 
-lazy val protoBin = Project(id = "aerospike-scala-proto",
-  base = file("aerospike-scala-proto"), dependencies = Seq(root))
-  .settings(setts ++ (moduleName := "aerospike-scala-proto") ++
-    (libraryDependencies ++= mainLib ++ testLibs) ++ protoSetting)
+lazy val root =
+  Project(id = "aerospike-scala", base = file("."), dependencies = Seq(domain, macros))
+    .settings(setts)
+    .settings(libraryDependencies ++= commonLibs(scalaVersion.value))
 
-lazy val example = Project(id = "aerospike-scala-example",
-  base = file("aerospike-scala-example"), dependencies = Seq(root, protoBin))
-  .settings(setts ++ (moduleName := "aerospike-scala-example") ++
-    (libraryDependencies ++= mainLib) ++ protoSetting)
+/**
+  * Helpers
+  */
+lazy val cleanAll = taskKey[Unit](s"Clean all subprojects")
+cleanAll in ThisBuild := clean
+  .all(ScopeFilter(inAnyProject))
+  .value
+  .foreach(identity)
 
+lazy val compileLibraries = taskKey[Unit](s"compile all libraries")
+compileLibraries in ThisBuild := Def
+  .sequential(
+    compile in (macros, Compile),
+    compile in (domain, Compile),
+    compile in (root, Compile),
+    compile in (protoBin, Compile)
+  )
+  .value
 
-lazy val root = Project(id = "aerospike-scala",
-  base = file("."),
-  dependencies = Seq(domain, macros))
-  .settings(setts,
-    libraryDependencies ++= mainLib ++ testLibs)
+lazy val compileAll = taskKey[Unit](s"compile all subprojects")
+compileAll in ThisBuild := Def
+  .sequential(
+    compileLibraries,
+    compile in (example, Compile)
+  )
+  .value
+
+lazy val recompileAll = taskKey[Unit](s"clean and compile all subprojects")
+recompileAll in ThisBuild := Def
+  .sequential(
+    cleanAll,
+    compileLibraries,
+    compile in (example, Compile)
+  )
+  .value
+
+lazy val compileAndTestAll = taskKey[Unit](s"compile all subprojects and test ${root.id}")
+compileAndTestAll in ThisBuild := Def
+  .sequential(
+    compileAll,
+    test in (root, Test)
+  )
+  .value
+
+lazy val recompileAndTestAll = taskKey[Unit](s"clean, compile all subprojects and test ${root.id}")
+recompileAndTestAll in ThisBuild := Def
+  .sequential(
+    recompileAll,
+    test in (root, Test)
+  )
+  .value
+
+lazy val publishLibrariesLocal = taskKey[Unit](s"publish all libraries locally")
+publishLibrariesLocal in ThisBuild := Def
+  .sequential(
+    publishLocal in macros,
+    publishLocal in domain,
+    publishLocal in root,
+    publishLocal in protoBin
+  )
+  .value
+
+lazy val publishLibraries = taskKey[Unit](s"publish all libraries")
+publishLibraries in ThisBuild := Def
+  .sequential(
+    publish in macros,
+    publish in domain,
+    publish in root,
+    publish in protoBin
+  )
+  .value

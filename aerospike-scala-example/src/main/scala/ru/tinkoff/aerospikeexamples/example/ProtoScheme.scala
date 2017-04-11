@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+// @formatter:off
 package ru.tinkoff.aerospikeexamples.example
 
 import com.aerospike.client.policy.WritePolicy
@@ -24,7 +26,6 @@ import ru.tinkoff.aerospikescala.domain.SingleBin
 
 import scala.concurrent.{ExecutionContext, Future}
 import ru.tinkoff.aerospikeproto.wrapper.ProtoBinWrapper
-import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * @author MarinaSigaeva
@@ -32,23 +33,34 @@ import scala.concurrent.ExecutionContext.Implicits.global
   */
 class ProtoScheme {
 
-  val client = AClient.spikeImpl
+  // Crutch. See https://github.com/TinkoffCreditSystems/aerospike-scala/issues/15
+  private def client(implicit ex: ExecutionContext) = AClient.spikeImpl
 
   def put[K, I <: GeneratedMessage with Message[I] with Updatable[I], R <: ProtoBinWrapper[I]]
-  (k: K, bin: SingleBin[I])(implicit kw: KeyWrapper[K],
-                            bw: R, e: ExecutionContext,
+  (k: K, bin: SingleBin[I])(implicit
+                            kw: KeyWrapper[K],
+                            bw: R,
+                            e: ExecutionContext,
                             pw: Option[WritePolicy] = None): Future[Unit] = {
     client.callKB[K, I](CallKB.Put, k, bin)(kw, bw, pw)
   }
 
   def absGet[K, I <: GeneratedMessage with Message[I] with Updatable[I], R <: ProtoBinWrapper[I]]
-  (k: K)(implicit kw: KeyWrapper[K], bw: R, e: ExecutionContext,
-         pw: Option[WritePolicy] = None): Future[Map[String, Option[I]]] = {
-    client.getByKey[K, I](k)(kw, bw, e, pw).map(r => r.map(_._1).getOrElse(throw new Exception("No data found")))
+  (k: K)(implicit
+          kw: KeyWrapper[K],
+          bw: R,
+          e: ExecutionContext,
+          pw: Option[WritePolicy] = None): Future[Map[String, Option[I]]] = {
+    client
+      .getByKey[K, I](k)
+      .map(r => r.map(_._1).getOrElse(throw new Exception("No data found")))
   }
 
   def get[I <: GeneratedMessage with Message[I] with Updatable[I]]
-  (k: String)(implicit kw: KeyWrapper[String], bw: ProtoBinWrapper[I],
-              e: ExecutionContext, pw: Option[WritePolicy] = None): Future[Map[String, Option[I]]] =
+  (k: String)(implicit
+              kw: KeyWrapper[String],
+              bw: ProtoBinWrapper[I],
+              e: ExecutionContext,
+              pw: Option[WritePolicy] = None): Future[Map[String, Option[I]]] =
     absGet[String, I, ProtoBinWrapper[I]](k)(kw, bw, e, pw)
 }

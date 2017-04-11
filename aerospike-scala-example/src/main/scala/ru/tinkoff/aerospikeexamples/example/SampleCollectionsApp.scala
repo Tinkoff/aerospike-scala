@@ -10,7 +10,7 @@ import scala.concurrent.duration.Duration.Inf
 import scala.language.experimental.macros
 
 /**
-  * @author MarinaSigaeva 
+  * @author MarinaSigaeva
   * @since 04.04.17
   */
 object SampleCollectionsApp extends App {

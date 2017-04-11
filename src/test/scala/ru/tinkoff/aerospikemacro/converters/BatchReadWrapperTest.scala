@@ -24,39 +24,42 @@ import org.scalatest.{FlatSpec, Matchers}
 import ru.tinkoff.aerospike.dsl.batchread.BatchReadWrapper
 import ru.tinkoff.aerospikemacro.domain.DBCredentials
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
-  * @author MarinaSigaeva 
+  * @author MarinaSigaeva
   * @since 21.09.16
   */
 class BatchReadWrapperTest extends FlatSpec with Matchers {
 
   def getList(kws: List[BatchReadWrapper]): util.List[BatchRead] = {
-    kws.view.map { kw => kw.apply }.toList
+    kws.view
+      .map(_.apply)
+      .toList
+      .asJava
   }
 
   it should "create BatchReads of different Key types" in {
 
     val b1 = new BatchReadWrapper {
-      val keyValue = "str"
-      val binNames = Array("s1", "s2")
+      val keyValue     = "str"
+      val binNames     = Array("s1", "s2")
       implicit val dbc = DBCredentials("test", "test")
     }
     val b2 = new BatchReadWrapper {
-      val keyValue = 2
+      val keyValue     = 2
       implicit val dbc = DBCredentials("ns", "setName")
-      val binNames = Array("s3", "s4")
+      val binNames     = Array("s3", "s4")
     }
 
     val brs = getList(List(b1, b2))
-    brs(0).key.namespace shouldBe "test"
-    brs(0).key.setName shouldBe "test"
-    brs(0).binNames shouldBe Array("s1", "s2")
+    brs.get(0).key.namespace shouldBe "test"
+    brs.get(0).key.setName shouldBe "test"
+    brs.get(0).binNames shouldBe Array("s1", "s2")
 
-    brs(1).key.namespace shouldBe "ns"
-    brs(1).key.setName shouldBe "setName"
-    brs(1).binNames shouldBe Array("s3", "s4")
+    brs.get(1).key.namespace shouldBe "ns"
+    brs.get(1).key.setName shouldBe "setName"
+    brs.get(1).binNames shouldBe Array("s3", "s4")
 
   }
 
