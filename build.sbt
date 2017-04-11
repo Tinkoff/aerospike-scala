@@ -183,3 +183,22 @@ publishLibraries in ThisBuild := Def
     publish in protoBin
   )
   .value
+
+import PgpKeys.publishSigned
+lazy val publishSignedLibraries = taskKey[Unit](s"publishSigned all libraries")
+publishSignedLibraries in ThisBuild := Def
+  .sequential(
+    publishSigned in macros,
+    publishSigned in domain,
+    publishSigned in root,
+    publishSigned in protoBin
+  )
+  .value
+
+lazy val publishSignedAll = taskKey[Unit](s"publishSigned all subprojects")
+publishSignedAll in ThisBuild := Def
+  .sequential(
+    publishSignedLibraries,
+    publishSigned in example
+  )
+  .value
